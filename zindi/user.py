@@ -97,11 +97,10 @@ class Zindian:
         free_submissions : int, default=n_subimissions_per_day.
             The number of now remaining submissions.
         """
+        free_submissions = None
         if self.__challenge_selected:
             url = self.__api
             headers = {**self.__headers, "auth_token": self.__auth_data["auth_token"]}
-
-            free_submissions = None
             n_sub = n_subimissions_per_day(url=url, headers=headers)
             n_submitted_today = 0
             self.submission_board(to_print=False)
@@ -331,7 +330,7 @@ class Zindian:
 
     ## Show leaderboard
     def leaderboard(self, to_print=True):
-        """Get the leaderboard and upadte the user rank for the selected challenge.
+        """Get the leaderboard and update the user rank for the selected challenge.
 
         Parameters
         ----------
