@@ -67,7 +67,7 @@ class TestFileOperations(unittest.TestCase):
     @patch("zindi.utils.MultipartEncoderMonitor")
     @patch("zindi.utils.os.sep", "/")  # Mock os separator for consistency
     def test_upload_success(
-        self, mock_monitor, mock_encoder, mock_tqdm, mock_open_func, mock_post, mock_sep
+        self, mock_monitor, mock_encoder, mock_tqdm, mock_open_func, mock_post
     ):
         """Test successful file upload."""
         mock_encoder_instance = MagicMock()
@@ -96,11 +96,11 @@ class TestFileOperations(unittest.TestCase):
         mock_open_func.assert_called_once_with(filepath, "rb")
         mock_encoder.assert_called_once()
         # Check that the file tuple was passed correctly to MultipartEncoder
-        args, kwargs = mock_encoder.call_args
-        self.assertIn("file", kwargs)
-        self.assertEqual(kwargs["file"][0], "to/submission.csv")  # Check filename part
-        self.assertEqual(kwargs["file"][2], "text/plain")
-        self.assertEqual(kwargs["comment"], comment)
+        (args,), kwargs = mock_encoder.call_args
+        self.assertIn("file", args)
+        self.assertEqual(args["file"][0], "to/submission.csv")  # Check filename part
+        self.assertEqual(args["file"][2], "text/plain")
+        self.assertEqual(args["comment"], comment)
 
         mock_monitor.assert_called_once_with(mock_encoder_instance, unittest.mock.ANY)
         mock_tqdm.assert_called_once_with(

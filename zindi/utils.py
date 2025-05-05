@@ -234,11 +234,11 @@ def print_lb(challengers_data, user_rank):
             )  # conditioin to set last_submission value
             last_submission = (
                 ""
-                if check == True
+                if check
                 else pd.to_datetime(str(last_submission)).strftime("%d %B %Y, %H:%M")
             )
             # Check rank to exclude not yet active challengers
-            if rank != None:
+            if rank is not None:
                 if (
                     rank == user_rank
                 ):  # Check rank to mark my position on the leaderboard
@@ -318,16 +318,16 @@ def print_submission_board(submissions_data):
                 else data["public_score"]
             )  # Score of the submission
             score = (
-                "In processing" if score == None else score
+                "In processing" if score is None else score
             )  # Show a message when processing of the score is not yet finished
             comment = (
-                "" if data["comment"] == None else data["comment"]
+                "" if data["comment"] is None else data["comment"]
             )  # Comment of the submission
         else:
             score = "-"  # Score of the submission : "-" for wrong submission
             status = "🔴"  # Status - for wrong of the submission
             comment = (
-                "" if data["status_description"] == None else data["status_description"]
+                "" if data["status_description"] is None else data["status_description"]
             )  # Submission error description
         print("-" * 130)
         try:
@@ -390,9 +390,9 @@ def join_challenge(url, headers, code=False):
             raise Exception(msg_error)
     else:  # else print success message
         if "ids" in response:
-            print(f"\n[ 🟢 ] Welcome for the first time to this challenge.\n")
+            print("\n[ 🟢 ] Welcome for the first time to this challenge.\n")
         else:
-            print(f"\n[ 🟢 ] {response}.\n")
+            print("\n[ 🟢 ] {response}.\n")
 
 
 ## Get available challenges
@@ -440,7 +440,7 @@ def get_challenges(reward="all", kind="competition", active="all", url="", heade
         if kind.lower() not in ["competition", "hackathon"]
         else kind.lower()
     )
-    active = "" if active.lower() not in [True, False] else int(active)
+    active = "" if isinstance(active, str) else int(active)
     # join sorting params in a dictionary which will be passed in the url
     sorting_params = dict(page=0, per_page=800, prize=reward, kind=kind, active=active)
 
@@ -538,7 +538,7 @@ def user_on_lb(challengers_data, challenge_id, username, headers):
     """
     df_lb = pd.DataFrame(challengers_data)  # DataFrame verion of the leaderboard
     df_lb = df_lb[
-        (df_lb.public_rank != None)
+        (df_lb.public_rank is not None)
     ]  # filter to use only leaderboard part with the active challengers
     try:
         team_id = participations(challenge_id=challenge_id, headers=headers)
