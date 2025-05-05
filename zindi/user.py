@@ -1,14 +1,7 @@
 # Imports
 
-import os
-import sys
-
-## To avoid errors of importing before instalation
-currentdir = os.path.dirname(os.path.realpath(__file__))
-parentdir = os.path.dirname(currentdir)
-sys.path.append(parentdir)
-
 import datetime
+import os
 from getpass import getpass
 
 import pandas as pd
