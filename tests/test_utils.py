@@ -1,15 +1,8 @@
-import os
-import sys
 import unittest
 from unittest.mock import MagicMock, call, mock_open, patch
 
 import pandas as pd
 import requests  # Import requests for exception testing
-
-# Ensure the zindi package is importable
-currentdir = os.path.dirname(os.path.realpath(__file__))
-parentdir = os.path.dirname(currentdir)
-sys.path.append(parentdir)
 
 from zindi import utils
 

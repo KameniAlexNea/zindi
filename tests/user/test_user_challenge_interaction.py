@@ -1,58 +1,19 @@
 import datetime
 import os
-import sys  # Added sys import
 import unittest
-from unittest.mock import call  # Added call for assert_has_calls
-from unittest.mock import MagicMock, patch
+from unittest.mock import call, MagicMock, patch
 
 import pandas as pd
 
 from zindi.user import Zindian
 
-# Mock API responses
+# Mock API responses (Copied from original file)
 MOCK_SIGNIN_SUCCESS = {
     "data": {
         "auth_token": "mock_token",
         "user": {"username": "testuser", "id": 123},
     }
 }
-MOCK_SIGNIN_FAILURE = {"data": {"errors": {"message": "Wrong username or password"}}}
-MOCK_CHALLENGES_DATA = pd.DataFrame(
-    [
-        {
-            "id": "challenge-1",
-            "kind": "competition",
-            "subtitle": "Challenge 1 Subtitle",
-            "reward": "prize",
-            "type_of_problem": ["Classification"],
-            "data_type": ["Tabular"],
-            "secret_code_required": False,
-            "sealed": False,
-        },
-        {
-            "id": "challenge-2",
-            "kind": "hackathon",
-            "subtitle": "Challenge 2 Subtitle",
-            "reward": "points",
-            "type_of_problem": ["Regression"],
-            "data_type": ["Image"],
-            "secret_code_required": False,
-            "sealed": False,
-        },
-        {
-            "id": "challenge-3",
-            "kind": "competition",
-            "subtitle": "Challenge 3 Subtitle",
-            "reward": "knowledge",
-            "type_of_problem": ["NLP"],
-            "data_type": ["Text"],
-            "secret_code_required": False,
-            "sealed": False,
-        },
-    ]
-)
-MOCK_PARTICIPATION_SUCCESS = {"data": {"ids": [1]}}
-MOCK_PARTICIPATION_ALREADY_IN = {"data": {"errors": {"message": "already in"}}}
 MOCK_LEADERBOARD_DATA = {
     "data": [
         {
@@ -141,43 +102,6 @@ MOCK_CHALLENGE_DETAILS_DATA = {
 }
 MOCK_SUBMIT_SUCCESS = {"data": {"id": "sub-new-123"}}
 MOCK_SUBMIT_FAILURE = {"data": {"errors": {"base": "Submission failed"}}}
-MOCK_CREATE_TEAM_SUCCESS = {"data": {"title": "New Team"}}
-MOCK_CREATE_TEAM_ALREADY_LEADER = {
-    "data": {"errors": {"base": "Leader can only be part of one team per competition."}}
-}
-MOCK_TEAM_UP_SUCCESS = {"data": {"message": "Invitation sent"}}
-MOCK_TEAM_UP_ALREADY_INVITED = {"data": {"errors": {"base": "User is already invited"}}}
-MOCK_DISBAND_SUCCESS = {"data": "Team disbanded successfully"}
-
-
-# --- Test Class for Authentication ---
-class TestUserAuth(unittest.TestCase):
-    @patch("zindi.user.requests.post")
-    @patch("zindi.user.getpass")
-    def test_init_signin_success(self, mock_getpass, mock_post):
-        """Test successful initialization and sign-in."""
-        mock_getpass.return_value = "password"
-        mock_post.return_value.json.return_value = MOCK_SIGNIN_SUCCESS
-        user = Zindian(username="testuser")
-        mock_getpass.assert_called_once()
-        mock_post.assert_called_once_with(
-            "https://api.zindi.africa/v1/auth/signin",
-            data={"username": "testuser", "password": "password"},
-            headers=user._Zindian__headers,
-        )
-        self.assertEqual(user._Zindian__auth_data, MOCK_SIGNIN_SUCCESS["data"])
-        self.assertFalse(user._Zindian__challenge_selected)
-
-    @patch("zindi.user.requests.post")
-    @patch("zindi.user.getpass")
-    def test_init_signin_failure(self, mock_getpass, mock_post):
-        """Test failed sign-in during initialization."""
-        mock_getpass.return_value = "wrongpassword"
-        mock_post.return_value.json.return_value = MOCK_SIGNIN_FAILURE
-        with self.assertRaises(Exception) as cm:
-            Zindian(username="testuser")
-        self.assertIn("Wrong username or password", str(cm.exception))
-        mock_getpass.assert_called_once()
 
 
 # --- Base Class for Tests Requiring Authenticated User ---
@@ -192,60 +116,6 @@ class AuthenticatedUserTestCase(unittest.TestCase):
         # Prevent setUp mocks from interfering with test-specific mocks
         mock_getpass.reset_mock()
         mock_post.reset_mock()
-
-
-# --- Test Class for Challenge Selection ---
-class TestUserChallengeSelection(AuthenticatedUserTestCase):
-    def test_which_challenge_not_selected(self):
-        """Test which_challenge when no challenge is selected."""
-        self.assertIsNone(self.user.which_challenge)
-
-    @patch("zindi.user.requests.get")
-    @patch("zindi.user.requests.post")
-    @patch("builtins.input", return_value="1")
-    def test_select_a_challenge_success(self, mock_input, mock_post, mock_get):
-        """Test successfully selecting a challenge via input."""
-        mock_get.return_value.json.return_value = {
-            "data": MOCK_CHALLENGES_DATA.to_dict("records")
-        }
-        mock_post.return_value.json.return_value = MOCK_PARTICIPATION_SUCCESS
-
-        self.user.select_a_challenge(kind="all")
-
-        mock_get.assert_called_once()
-        mock_post.assert_called_once()
-        self.assertTrue(self.user._Zindian__challenge_selected)
-        self.assertEqual(self.user._Zindian__challenge_data["id"], "challenge-2")
-        self.assertEqual(self.user.which_challenge, "challenge-2")
-
-    @patch("zindi.user.requests.get")
-    @patch("zindi.user.requests.post")
-    def test_select_a_challenge_fixed_index(self, mock_post, mock_get):
-        """Test selecting a challenge using fixed_index."""
-        mock_get.return_value.json.return_value = {
-            "data": MOCK_CHALLENGES_DATA.to_dict("records")
-        }
-        mock_post.return_value.json.return_value = MOCK_PARTICIPATION_ALREADY_IN
-
-        self.user.select_a_challenge(fixed_index=2)
-
-        self.assertTrue(self.user._Zindian__challenge_selected)
-        self.assertEqual(self.user._Zindian__challenge_data["id"], "challenge-3")
-        mock_post.assert_called_once()
-
-    @patch("zindi.user.requests.get")
-    def test_select_a_challenge_invalid_fixed_index(self, mock_get):
-        """Test selecting a challenge with an invalid fixed_index."""
-        mock_get.return_value.json.return_value = {
-            "data": MOCK_CHALLENGES_DATA.to_dict("records")
-        }
-        with self.assertRaises(Exception) as cm:
-            self.user.select_a_challenge(fixed_index=10)
-        self.assertIn("must be an integer in range", str(cm.exception))
-
-        with self.assertRaises(Exception) as cm:
-            self.user.select_a_challenge(fixed_index=-1)
-        self.assertIn("must be an integer in range", str(cm.exception))
 
 
 # --- Test Class for Challenge Interaction (Download, Submit, Boards, Rank) ---
@@ -412,90 +282,6 @@ class TestUserChallengeInteraction(AuthenticatedUserTestCase):
         self.user._Zindian__challenge_selected = False  # Override setup
         remaining = self.user.remaining_subimissions
         self.assertIsNone(remaining)
-
-
-# --- Test Class for Team Management ---
-class TestUserTeamManagement(AuthenticatedUserTestCase):
-    def setUp(self):
-        """Extend setUp to also select a challenge."""
-        super().setUp()
-        # Pre-select a challenge for these tests
-        self.user._Zindian__challenge_selected = True
-        self.user._Zindian__challenge_data = pd.Series(
-            {"id": "challenge-team", "subtitle": "Team Challenge"}
-        )
-        self.user._Zindian__api = f"{self.user._Zindian__base_api}/challenge-team"
-
-    def test_team_action_not_selected_error(self):
-        """Test team actions before selecting a challenge (edge case)."""
-        self.user._Zindian__challenge_selected = False  # Override setup
-        with self.assertRaises(Exception) as cm_create:
-            self.user.create_team(team_name="Fail")
-        self.assertIn("select a challenge before", str(cm_create.exception))
-
-        with self.assertRaises(Exception) as cm_up:
-            self.user.team_up(zindians=["user"])
-        self.assertIn("select a challenge before", str(cm_up.exception))
-
-        with self.assertRaises(Exception) as cm_disband:
-            self.user.disband_team()
-        self.assertIn("select a challenge before", str(cm_disband.exception))
-
-    @patch("zindi.user.requests.post")
-    def test_create_team_success(self, mock_post):
-        """Test creating a team successfully."""
-        mock_post.return_value.json.return_value = MOCK_CREATE_TEAM_SUCCESS
-        self.user.create_team(team_name="New Team")
-        mock_post.assert_called_once_with(
-            f"{self.user._Zindian__api}/my_team",
-            headers={"User-Agent": unittest.mock.ANY},
-            data={"title": "New Team", "auth_token": "mock_token"},
-        )
-
-    @patch("zindi.user.requests.post")
-    @patch("builtins.print")  # Mock print
-    def test_create_team_already_leader(self, mock_print, mock_post):
-        """Test creating a team when already a leader."""
-        mock_post.return_value.json.return_value = MOCK_CREATE_TEAM_ALREADY_LEADER
-        self.user.create_team(team_name="Another Team")
-        mock_post.assert_called_once()
-        mock_print.assert_any_call(f"\n[ 🟢 ] You are already the leader of a team.\n")
-
-    @patch("zindi.user.requests.post")
-    def test_team_up_success(self, mock_post):
-        """Test inviting teammates successfully."""
-        mock_post.return_value.json.return_value = MOCK_TEAM_UP_SUCCESS
-        teammates = ["friend1", "friend2"]
-        self.user.team_up(zindians=teammates)
-
-        self.assertEqual(mock_post.call_count, 2)
-        # Check calls carefully - original code needs auth_token in data for invite POST
-        expected_calls = [
-            call(
-                f"{self.user._Zindian__api}/my_team/invite",
-                headers={"User-Agent": unittest.mock.ANY},
-                # data={"username": "friend1", "auth_token": "mock_token"} # Assuming auth_token should be here
-                data={"username": "friend1"},  # Based on original code
-            ),
-            call(
-                f"{self.user._Zindian__api}/my_team/invite",
-                headers={"User-Agent": unittest.mock.ANY},
-                # data={"username": "friend2", "auth_token": "mock_token"} # Assuming auth_token should be here
-                data={"username": "friend2"},  # Based on original code
-            ),
-        ]
-        mock_post.assert_has_calls(expected_calls, any_order=True)
-
-    @patch("zindi.user.requests.delete")
-    def test_disband_team_success(self, mock_delete):
-        """Test disbanding a team successfully."""
-        mock_delete.return_value.json.return_value = MOCK_DISBAND_SUCCESS
-        self.user.disband_team()
-        mock_delete.assert_called_once_with(
-            f"{self.user._Zindian__api}/my_team",
-            headers={"User-Agent": unittest.mock.ANY},
-            data={"auth_token": "mock_token"},
-        )
 
 
 if __name__ == "__main__":
