@@ -1,4 +1,4 @@
-def get_challenges(reward='all', kind='all', active='all', url='', headers='' ):
+def get_challenges(reward="all", kind="all", active="all", url="", headers=""):
     """Get the available Zindi's challenges using filter options.
 
     Parameters
@@ -13,7 +13,7 @@ def get_challenges(reward='all', kind='all', active='all', url='', headers='' ):
     url : string
         The url of the selected challenge.
     headers : dictionary
-        The headers of the request to participate in a challenge.  
+        The headers of the request to participate in a challenge.
 
     Returns
     -------

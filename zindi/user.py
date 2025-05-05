@@ -1,18 +1,20 @@
 # Imports
 
-import sys, os
+import os
+import sys
 
 ## To avoid errors of importing before instalation
 currentdir = os.path.dirname(os.path.realpath(__file__))
 parentdir = os.path.dirname(currentdir)
 sys.path.append(parentdir)
 
-from zindi.utils import *
+import datetime
 from getpass import getpass
 
 import pandas as pd
-import requests, datetime
-from tqdm import tqdm
+import requests
+
+from zindi.utils import *
 
 
 # Class declaration and init

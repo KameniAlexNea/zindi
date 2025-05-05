@@ -1,4 +1,4 @@
-def download(url="https://", filename="", headers=''):
+def download(url="https://", filename="", headers=""):
     """Download a file with progress bar.
 
     Parameters

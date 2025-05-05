@@ -1,7 +1,9 @@
-import requests, os
+import os
+
+import pandas as pd
+import requests
 from requests_toolbelt import MultipartEncoder, MultipartEncoderMonitor
 from tqdm import tqdm
-import pandas as pd
 
 # Utils
 

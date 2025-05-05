@@ -24,6 +24,9 @@ setuptools.setup(
     # url="https://github.com/pypa/sampleproject",
     packages=setuptools.find_packages(),
     install_requires=["tdqm", "requests", "pandas", "requests-toolbelt"],  # "getpass"
+    setup_requires=[
+        "bump2version",
+    ],
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",

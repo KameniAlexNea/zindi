@@ -10,7 +10,7 @@ def user_on_lb(challengers_data, challenge_id, username, headers):
     username : string
         The username of the user.
     headers : dictionary
-        The headers of the request to participate in a challenge.  
+        The headers of the request to participate in a challenge.
 
     Returns
     -------

@@ -1,4 +1,6 @@
-import sys, os, unittest
+import os
+import sys
+import unittest
 
 ## To avoid errors of importing before instalation
 currentdir = os.path.dirname(os.path.realpath(__file__))

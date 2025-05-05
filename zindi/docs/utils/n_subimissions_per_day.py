@@ -1,4 +1,4 @@
-def n_subimissions_per_day( url, headers ):
+def n_subimissions_per_day(url, headers):
     """Get the number of submissions we can make per day for the selected challenge.
 
     Parameters

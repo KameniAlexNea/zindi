@@ -6,7 +6,7 @@ def participations(challenge_id, headers):
     challenge_id : string
         The id of the selected challenge.
     headers : dictionary
-        The headers of the request to participate in a challenge.  
+        The headers of the request to participate in a challenge.
 
     Returns
     -------
