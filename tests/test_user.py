@@ -39,7 +39,7 @@ class Test(unittest.TestCase):
             Zindian(username=USERNAME, fixed_password="-")
         self.assertEqual(
             str(exception_context.exception).strip(),
-            "[ 🔴 ] {'password': 'wrong password'}",
+            "[ 🔴 ] {'message': 'Wrong username or password'}",
         )
 
     def test_which_challenge_negative(
