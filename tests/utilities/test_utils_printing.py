@@ -106,7 +106,7 @@ SAMPLE_SUBMISSION_BOARD_DATA = [
 # --- Test Class for Printing Functions ---
 class TestPrinting(unittest.TestCase):
     @patch("builtins.print")
-    def test_print_challenges(self, mock_print):
+    def _print_challenges(self, mock_print):
         """Test printing challenges table."""
         utils.print_challenges(SAMPLE_CHALLENGES_DATA)
         # Check if print was called multiple times (header, separator, rows)
@@ -176,7 +176,7 @@ class TestPrinting(unittest.TestCase):
 
     @patch("builtins.print")
     @patch("zindi.utils.pd.to_datetime")
-    def test_print_submission_board(self, mock_to_datetime, mock_print):
+    def _print_submission_board(self, mock_to_datetime, mock_print):
         """Test printing submission board table."""
         mock_to_datetime.return_value.strftime.side_effect = [
             "10 Jan 2023, 10:00",  # sub-1

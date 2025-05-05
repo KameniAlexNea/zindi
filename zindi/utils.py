@@ -486,7 +486,9 @@ def challenge_idx_selector(n_challenges):
             else:
                 raise Exception()
         except:
-            if user_input.lower().strip() == "q":  # to stop selection
+            if (
+                isinstance(user_input, str) and user_input.lower().strip() == "q"
+            ):  # to stop selection
                 return challenge_index
             else:
                 print("\n[ 🔴 ] Please enter a correct challenge index.\n")
@@ -538,7 +540,7 @@ def user_on_lb(challengers_data, challenge_id, username, headers):
     """
     df_lb = pd.DataFrame(challengers_data)  # DataFrame verion of the leaderboard
     df_lb = df_lb[
-        (df_lb.public_rank is not None)
+        ~df_lb["public_rank"].isna()
     ]  # filter to use only leaderboard part with the active challengers
     try:
         team_id = participations(challenge_id=challenge_id, headers=headers)

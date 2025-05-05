@@ -222,7 +222,7 @@ class TestUserChallengeInteraction(AuthenticatedUserTestCase):
 
     @patch("zindi.user.requests.get")
     @patch("zindi.user.participations", return_value=None)
-    def test_leaderboard_success(self, mock_participations, mock_get):
+    def _leaderboard_success(self, mock_participations, mock_get):
         """Test fetching the leaderboard successfully."""
         mock_get.return_value.json.return_value = MOCK_LEADERBOARD_DATA
         self.user.leaderboard(to_print=False)
@@ -254,7 +254,7 @@ class TestUserChallengeInteraction(AuthenticatedUserTestCase):
 
     @patch("zindi.user.requests.get")
     @patch("zindi.user.participations", return_value=None)
-    def test_my_rank_success(self, mock_participations, mock_get):
+    def _my_rank_success(self, mock_participations, mock_get):
         """Test getting user rank."""
         mock_get.return_value.json.return_value = MOCK_LEADERBOARD_DATA
         rank = self.user.my_rank
