@@ -1,12 +1,11 @@
-import os
-import sys
-import unittest
-from unittest.mock import patch, MagicMock, mock_open
-import pandas as pd
 import datetime
+import os
+import unittest
+from unittest.mock import patch
+
+import pandas as pd
 
 from zindi.user import Zindian
-from zindi.utils import download, upload
 
 # Mock API responses
 MOCK_SIGNIN_SUCCESS = {
@@ -82,7 +81,10 @@ MOCK_SUBMISSION_BOARD_DATA = {
         {
             "id": "sub-1",
             "status": "successful",
-            "created_at": (datetime.datetime.utcnow() - datetime.timedelta(hours=2)).isoformat() + "Z",
+            "created_at": (
+                datetime.datetime.utcnow() - datetime.timedelta(hours=2)
+            ).isoformat()
+            + "Z",
             "filename": "submission1.csv",
             "public_score": 0.92,
             "private_score": 0.91,
@@ -92,17 +94,23 @@ MOCK_SUBMISSION_BOARD_DATA = {
         {
             "id": "sub-2",
             "status": "failed",
-            "created_at": (datetime.datetime.utcnow() - datetime.timedelta(hours=1)).isoformat() + "Z",
+            "created_at": (
+                datetime.datetime.utcnow() - datetime.timedelta(hours=1)
+            ).isoformat()
+            + "Z",
             "filename": "submission2.csv",
             "public_score": None,
             "private_score": None,
             "comment": "Second attempt",
             "status_description": "Invalid format",
         },
-         {
+        {
             "id": "sub-3",
             "status": "successful",
-            "created_at": (datetime.datetime.utcnow() - datetime.timedelta(days=1, hours=5)).isoformat() + "Z",
+            "created_at": (
+                datetime.datetime.utcnow() - datetime.timedelta(days=1, hours=5)
+            ).isoformat()
+            + "Z",
             "filename": "submission_old.csv",
             "public_score": 0.90,
             "private_score": 0.89,
@@ -122,14 +130,19 @@ MOCK_CHALLENGE_DETAILS_DATA = {
         ],
         "pages": [
             {"title": "Overview", "content_html": "Some content"},
-            {"title": "Rules", "content_html": "Blah blah You may make a maximum of 5 submissions per day. Blah blah"},
-        ]
+            {
+                "title": "Rules",
+                "content_html": "Blah blah You may make a maximum of 5 submissions per day. Blah blah",
+            },
+        ],
     }
 }
 MOCK_SUBMIT_SUCCESS = {"data": {"id": "sub-new-123"}}
 MOCK_SUBMIT_FAILURE = {"data": {"errors": {"base": "Submission failed"}}}
 MOCK_CREATE_TEAM_SUCCESS = {"data": {"title": "New Team"}}
-MOCK_CREATE_TEAM_ALREADY_LEADER = {"data": {"errors": {"base": "Leader can only be part of one team per competition."}}}
+MOCK_CREATE_TEAM_ALREADY_LEADER = {
+    "data": {"errors": {"base": "Leader can only be part of one team per competition."}}
+}
 MOCK_TEAM_UP_SUCCESS = {"data": {"message": "Invitation sent"}}
 MOCK_TEAM_UP_ALREADY_INVITED = {"data": {"errors": {"base": "User is already invited"}}}
 MOCK_DISBAND_SUCCESS = {"data": "Team disbanded successfully"}
@@ -178,7 +191,9 @@ class TestZindian(unittest.TestCase):
     @patch("zindi.user.requests.post")
     @patch("builtins.input", return_value="1")
     def test_select_a_challenge_success(self, mock_input, mock_post, mock_get):
-        mock_get.return_value.json.return_value = {"data": MOCK_CHALLENGES_DATA.to_dict('records')}
+        mock_get.return_value.json.return_value = {
+            "data": MOCK_CHALLENGES_DATA.to_dict("records")
+        }
         mock_post.return_value.json.return_value = MOCK_PARTICIPATION_SUCCESS
 
         self.user.select_a_challenge(kind="all")
@@ -192,7 +207,9 @@ class TestZindian(unittest.TestCase):
     @patch("zindi.user.requests.get")
     @patch("zindi.user.requests.post")
     def test_select_a_challenge_fixed_index(self, mock_post, mock_get):
-        mock_get.return_value.json.return_value = {"data": MOCK_CHALLENGES_DATA.to_dict('records')}
+        mock_get.return_value.json.return_value = {
+            "data": MOCK_CHALLENGES_DATA.to_dict("records")
+        }
         mock_post.return_value.json.return_value = MOCK_PARTICIPATION_ALREADY_IN
 
         self.user.select_a_challenge(fixed_index=2)
@@ -203,7 +220,9 @@ class TestZindian(unittest.TestCase):
 
     @patch("zindi.user.requests.get")
     def test_select_a_challenge_invalid_fixed_index(self, mock_get):
-        mock_get.return_value.json.return_value = {"data": MOCK_CHALLENGES_DATA.to_dict('records')}
+        mock_get.return_value.json.return_value = {
+            "data": MOCK_CHALLENGES_DATA.to_dict("records")
+        }
         with self.assertRaises(Exception) as cm:
             self.user.select_a_challenge(fixed_index=10)
         self.assertIn("must be an integer in range", str(cm.exception))
@@ -221,7 +240,9 @@ class TestZindian(unittest.TestCase):
     @patch("zindi.user.os.path.isdir", return_value=False)
     @patch("zindi.user.requests.get")
     @patch("zindi.user.download")
-    def test_download_dataset_success(self, mock_util_download, mock_get, mock_isdir, mock_makedirs):
+    def test_download_dataset_success(
+        self, mock_util_download, mock_get, mock_isdir, mock_makedirs
+    ):
         self.user._Zindian__challenge_selected = True
         self.user._Zindian__challenge_data = pd.Series({"id": "challenge-2"})
         self.user._Zindian__api = f"{self.user._Zindian__base_api}/challenge-2"
@@ -235,25 +256,25 @@ class TestZindian(unittest.TestCase):
         mock_makedirs.assert_called_once_with(dest_folder, exist_ok=True)
         mock_get.assert_called_once_with(
             self.user._Zindian__api,
-            headers={'User-Agent': unittest.mock.ANY, 'auth_token': 'mock_token'},
-            data={'auth_token': 'mock_token'}
+            headers={"User-Agent": unittest.mock.ANY, "auth_token": "mock_token"},
+            data={"auth_token": "mock_token"},
         )
         self.assertEqual(mock_util_download.call_count, 3)
         expected_calls = [
             unittest.mock.call(
                 url=f"{self.user._Zindian__api}/files/Train.csv",
                 filename=os.path.join(dest_folder, "Train.csv"),
-                headers={'User-Agent': unittest.mock.ANY, 'auth_token': 'mock_token'}
+                headers={"User-Agent": unittest.mock.ANY, "auth_token": "mock_token"},
             ),
             unittest.mock.call(
                 url=f"{self.user._Zindian__api}/files/Test.csv",
                 filename=os.path.join(dest_folder, "Test.csv"),
-                headers={'User-Agent': unittest.mock.ANY, 'auth_token': 'mock_token'}
+                headers={"User-Agent": unittest.mock.ANY, "auth_token": "mock_token"},
             ),
             unittest.mock.call(
                 url=f"{self.user._Zindian__api}/files/SampleSubmission.csv",
                 filename=os.path.join(dest_folder, "SampleSubmission.csv"),
-                headers={'User-Agent': unittest.mock.ANY, 'auth_token': 'mock_token'}
+                headers={"User-Agent": unittest.mock.ANY, "auth_token": "mock_token"},
             ),
         ]
         mock_util_download.assert_has_calls(expected_calls, any_order=True)
@@ -280,7 +301,7 @@ class TestZindian(unittest.TestCase):
             filepath=filepath,
             comment=comment,
             url=f"{self.user._Zindian__api}/submissions",
-            headers={'User-Agent': unittest.mock.ANY, 'auth_token': 'mock_token'}
+            headers={"User-Agent": unittest.mock.ANY, "auth_token": "mock_token"},
         )
 
     @patch("zindi.user.os.path.isfile", return_value=False)
@@ -379,8 +400,8 @@ class TestZindian(unittest.TestCase):
         self.user.create_team(team_name="New Team")
         mock_post.assert_called_once_with(
             f"{self.user._Zindian__api}/my_team",
-            headers={'User-Agent': unittest.mock.ANY},
-            data={'title': 'New Team', 'auth_token': 'mock_token'}
+            headers={"User-Agent": unittest.mock.ANY},
+            data={"title": "New Team", "auth_token": "mock_token"},
         )
 
     @patch("zindi.user.requests.post")
@@ -407,13 +428,13 @@ class TestZindian(unittest.TestCase):
         expected_calls = [
             unittest.mock.call(
                 f"{self.user._Zindian__api}/my_team/invite",
-                headers={'User-Agent': unittest.mock.ANY},
-                data={'username': 'friend1'}
+                headers={"User-Agent": unittest.mock.ANY},
+                data={"username": "friend1"},
             ),
-             unittest.mock.call(
+            unittest.mock.call(
                 f"{self.user._Zindian__api}/my_team/invite",
-                headers={'User-Agent': unittest.mock.ANY},
-                data={'username': 'friend2'}
+                headers={"User-Agent": unittest.mock.ANY},
+                data={"username": "friend2"},
             ),
         ]
 
@@ -427,8 +448,8 @@ class TestZindian(unittest.TestCase):
         self.user.disband_team()
         mock_delete.assert_called_once_with(
             f"{self.user._Zindian__api}/my_team",
-            headers={'User-Agent': unittest.mock.ANY},
-            data={'auth_token': 'mock_token'}
+            headers={"User-Agent": unittest.mock.ANY},
+            data={"auth_token": "mock_token"},
         )
 
 
