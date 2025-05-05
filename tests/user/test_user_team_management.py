@@ -1,5 +1,5 @@
 import unittest
-from unittest.mock import call, MagicMock, patch
+from unittest.mock import call, patch
 
 import pandas as pd
 

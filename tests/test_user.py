@@ -3,7 +3,7 @@ import os
 import sys  # Added sys import
 import unittest
 from unittest.mock import call  # Added call for assert_has_calls
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pandas as pd
 
