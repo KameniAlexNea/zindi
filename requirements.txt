@@ -2,4 +2,3 @@ tdqm
 requests
 pandas
 requests-toolbelt
-unittest

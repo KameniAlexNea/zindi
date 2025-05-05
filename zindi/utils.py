@@ -5,6 +5,7 @@ import pandas as pd
 
 # Utils
 
+
 ## Download a file
 def download(url="https://", filename="", headers=""):
     """Download a file with progress bar.
@@ -429,7 +430,11 @@ def get_challenges(reward="all", kind="competition", active="all", url="", heade
     reward = (
         "" if reward.lower() not in ["prize", "points", "knowledge"] else reward.lower()
     )
-    kind = "competition" if kind.lower() not in ["competition", "hackathon"] else kind.lower()
+    kind = (
+        "competition"
+        if kind.lower() not in ["competition", "hackathon"]
+        else kind.lower()
+    )
     active = "" if active.lower() not in [True, False] else int(active)
     # join sorting params in a dictionary which will be passed in the url
     sorting_params = dict(page=0, per_page=800, prize=reward, kind=kind, active=active)

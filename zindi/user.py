@@ -165,7 +165,9 @@ class Zindian:
             error_msg = f"[ 🔴 ] {response['errors']}"
             raise Exception(error_msg)
         else:
-            print(f"\n[ 🟢 ] 👋🏾👋🏾 Welcome {response['user']['username'] } 👋🏾👋🏾\n")
+            print(
+                f"\n[ 🟢 ] 👋🏾👋🏾 Welcome {response['user']['username'] } 👋🏾👋🏾\n"
+            )
             auth_data = response
         return auth_data
 
