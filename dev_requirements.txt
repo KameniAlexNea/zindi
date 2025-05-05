@@ -1,0 +1,9 @@
+tox
+pytest
+sphinx
+wheel
+twine
+build
+jupyter
+ipywidgets
+pickleshare

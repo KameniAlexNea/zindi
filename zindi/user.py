@@ -1,18 +1,26 @@
 # Imports
 
-import sys, os
-
-## To avoid errors of importing before instalation
-currentdir = os.path.dirname(os.path.realpath(__file__))
-parentdir = os.path.dirname(currentdir)
-sys.path.append(parentdir)
-
-from zindi.utils import *
+import datetime
+import os
 from getpass import getpass
 
 import pandas as pd
-import requests, datetime
-from tqdm import tqdm
+import requests
+
+from zindi.utils import (
+    challenge_idx_selector,
+    download,
+    get_challenges,
+    join_challenge,
+    n_subimissions_per_day,
+    print_challenges,
+    print_lb,
+    print_submission_board,
+    upload,
+    user_on_lb,
+)
+
+# from zindi.utils import *
 
 
 # Class declaration and init
@@ -50,7 +58,7 @@ class Zindian:
             msg = f"\n[ 🟢 ] You are currently enrolled in : {self.__challenge_data['id']} challenge,\n\t{self.__challenge_data['subtitle']}.\n"
             challenge = self.__challenge_data["id"]
         else:
-            msg = f"\n[ 🔴 ] You have not yet selected any challenge.\n"
+            msg = "\n[ 🔴 ] You have not yet selected any challenge.\n"
             challenge = None
         print(msg)
         return challenge
@@ -65,7 +73,7 @@ class Zindian:
             self.leaderboard(to_print=False)
             int_rank = self.__rank
             if int_rank == 0:
-                rank = f"not yet"
+                rank = "not yet"
             elif str(int_rank)[-1] == "1":
                 if str(int_rank)[-2] == "1":
                     rank = f"{int_rank}th"
@@ -79,7 +87,7 @@ class Zindian:
                 rank = f"{int_rank}th"
             msg = f"\n[ 🟢 ] You are {rank} on the leaderboad of {self.__challenge_data['id']} challenge, Go on...\n"
         else:
-            msg = f"\n[ 🔴 ] You have not yet selected any challenge.\n"
+            msg = "\n[ 🔴 ] You have not yet selected any challenge.\n"
             int_rank = 0
         print(msg)
         return int_rank
@@ -95,11 +103,10 @@ class Zindian:
         free_submissions : int, default=n_subimissions_per_day.
             The number of now remaining submissions.
         """
+        free_submissions = None
         if self.__challenge_selected:
             url = self.__api
             headers = {**self.__headers, "auth_token": self.__auth_data["auth_token"]}
-
-            free_submissions = None
             n_sub = n_subimissions_per_day(url=url, headers=headers)
             n_submitted_today = 0
             self.submission_board(to_print=False)
@@ -129,7 +136,7 @@ class Zindian:
             msg = f"\n[ 🟢 ] You have {free_submissions} remaining submissions for the challenge {self.__challenge_data['id']}.\n"
             print(msg)
         else:
-            msg = f"\n[ 🔴 ] You have not yet selected any challenge.\n"
+            msg = "\n[ 🔴 ] You have not yet selected any challenge.\n"
             print(msg)
         return free_submissions
 
@@ -153,7 +160,7 @@ class Zindian:
 
         auth_data = None
         url = "https://api.zindi.africa/v1/auth/signin"
-        if fixed_password == None:
+        if fixed_password is None:
             password = getpass(prompt="Your password\n>> ")
         else:
             password = fixed_password
@@ -165,7 +172,9 @@ class Zindian:
             error_msg = f"[ 🔴 ] {response['errors']}"
             raise Exception(error_msg)
         else:
-            print(f"\n[ 🟢 ] 👋🏾👋🏾 Welcome {response['user']['username'] } 👋🏾👋🏾\n")
+            print(
+                f"\n[ 🟢 ] 👋🏾👋🏾 Welcome {response['user']['username'] } 👋🏾👋🏾\n"
+            )
             auth_data = response
         return auth_data
 
@@ -266,7 +275,7 @@ class Zindian:
             ]
 
         else:
-            error_msg = f"\n[ 🔴 ] You have to select a challenge before to downoad a dataset,\n\tuse the select_a_challenge method before.\n"
+            error_msg = "\n[ 🔴 ] You have to select a challenge before to downoad a dataset,\n\tuse the select_a_challenge method before.\n"
             raise Exception(error_msg)
 
     ## Push submission file
@@ -322,12 +331,12 @@ class Zindian:
                         f"\n[ 🔴 ] Submission file must be a CSV file ( .csv ),\n\tplease verify this filepath : {filepath}\n"
                     )
         else:
-            error_msg = f"\n[ 🔴 ] You have to select a challenge before to push any submission file,\n\tuse the select_a_challenge method before.\n"
+            error_msg = "\n[ 🔴 ] You have to select a challenge before to push any submission file,\n\tuse the select_a_challenge method before.\n"
             raise Exception(error_msg)
 
     ## Show leaderboard
     def leaderboard(self, to_print=True):
-        """Get the leaderboard and upadte the user rank for the selected challenge.
+        """Get the leaderboard and update the user rank for the selected challenge.
 
         Parameters
         ----------
@@ -363,7 +372,7 @@ class Zindian:
                         challengers_data=self.__challengers_data, user_rank=self.__rank
                     )
         else:
-            error_msg = f"\n[ 🔴 ] You have to select a challenge before to get the leaderboard,\n\tuse the select_a_challenge method before.\n"
+            error_msg = "\n[ 🔴 ] You have to select a challenge before to get the leaderboard,\n\tuse the select_a_challenge method before.\n"
             raise Exception(error_msg)
 
     ## Show Submission-board
@@ -402,7 +411,7 @@ class Zindian:
                 if to_print:
                     print_submission_board(submissions_data=self.__sb_data)
         else:
-            error_msg = f"\n[ 🔴 ] You have to select a challenge before to get the submission-board,\n\tuse the select_a_challenge method before.\n"
+            error_msg = "\n[ 🔴 ] You have to select a challenge before to get the submission-board,\n\tuse the select_a_challenge method before.\n"
             raise Exception(error_msg)
 
     # Team
@@ -438,7 +447,7 @@ class Zindian:
                 if ("errors" in response) and (
                     "Leader can only be" in response["errors"]["base"]
                 ):
-                    print(f"\n[ 🟢 ] You are already the leader of a team.\n")
+                    print("\n[ 🟢 ] You are already the leader of a team.\n")
                 else:
                     print(
                         f"\n[ 🟢 ] Your team is well created as :{response['title']}\n"
@@ -451,7 +460,7 @@ class Zindian:
                         "You can send invitation to join your team using teamup function"
                     )
         else:
-            error_msg = f"\n[ 🔴 ] You have to select a challenge before to manage your team,\n\tuse the select_a_challenge method before.\n"
+            error_msg = "\n[ 🔴 ] You have to select a challenge before to manage your team,\n\tuse the select_a_challenge method before.\n"
             raise Exception(error_msg)
 
     ## Team Up
@@ -490,7 +499,7 @@ class Zindian:
                     )
 
         else:
-            error_msg = f"\n[ 🔴 ] You have to select a challenge before to manage your team,\n\tuse the select_a_challenge method before.\n"
+            error_msg = "\n[ 🔴 ] You have to select a challenge before to manage your team,\n\tuse the select_a_challenge method before.\n"
             raise Exception(error_msg)
 
     ## Disband ... think to add kick function to kick-off some selected teammates... think to add team status (invited users, teammates)
@@ -514,5 +523,5 @@ class Zindian:
             else:
                 print(f"\n[ 🟢 ] {response}\n")
         else:
-            error_msg = f"\n[ 🔴 ] You have to select a challenge before to manage your team,\n\tuse the select_a_challenge method before.\n"
+            error_msg = "\n[ 🔴 ] You have to select a challenge before to manage your team,\n\tuse the select_a_challenge method before.\n"
             raise Exception(error_msg)
