@@ -9,7 +9,7 @@ from tqdm import tqdm
 
 
 ## Download a file
-def download(url="https://", filename="", headers=""):
+def download(url="https://", filename="", headers: dict = {}):
     """Download a file with progress bar.
 
     Parameters
@@ -23,7 +23,10 @@ def download(url="https://", filename="", headers=""):
     """
 
     response = requests.get(
-        url, headers=headers, data={"auth_token": headers["auth_token"]}, stream=True
+        url,
+        headers=headers,
+        data={"auth_token": headers.get("auth_token")},
+        stream=True,
     )
     response.raise_for_status()  # check if there is no error
     total = int(response.headers.get("content-length", 0))
