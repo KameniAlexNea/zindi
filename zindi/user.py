@@ -20,8 +20,6 @@ from zindi.utils import (
     user_on_lb,
 )
 
-# from zindi.utils import *
-
 
 # Class declaration and init
 class Zindian:
@@ -181,7 +179,12 @@ class Zindian:
     # Challenge
     ## Select a challenge to participate in
     def select_a_challenge(
-        self, reward="all", kind="competition", active="all", fixed_index=None, per_page=20
+        self,
+        reward="all",
+        kind="competition",
+        active="all",
+        fixed_index=None,
+        per_page=20,
     ):
         """Select a challenge among those available on Zindi, using filter options.
 
@@ -204,7 +207,12 @@ class Zindian:
         headers = self.__headers
         url = self.__base_api
         challenges_data = get_challenges(
-            reward=reward, kind=kind, active=active, url=url, headers=headers, per_page=per_page
+            reward=reward,
+            kind=kind,
+            active=active,
+            url=url,
+            headers=headers,
+            per_page=per_page,
         )
         n_challenges = challenges_data.shape[0]
 

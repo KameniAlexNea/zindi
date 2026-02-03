@@ -51,19 +51,11 @@ user.create_team(team_name="New Team")             # Create a team for the selec
 
 ```
 
-## Status
-
-In progress 🚧 . All listed functions in **Usage** part are working, but please share issues with use and request features that you need.
-
-## Documentation
-
-We will update this table soon ... Now you can refer to the notebook and **Usage** section.
-
 # Contributers
 
 <div align='center'>
 
-| <img src='https://media-exp1.licdn.com/dms/image/C5103AQEWceAkHjUwVw/profile-displayphoto-shrink_100_100/0/1582378323644?e=1658361600&v=beta&t=HLQGLn2wqkq_Utgt3e0hiM-vBGZF8_-RRVAl12PP_N0' width='100' height='100' style='border-radius:50%; margin:.8cm'> <br>Emmanuel KOUPOH                        | <img src='https://dric2018.github.io/static/media/pic1.19034710.png' width='100' height='100' style='border-radius:50%; margin:.8cm'> <br>Cédric MANOUAN                      | <img src='https://media-exp1.licdn.com/dms/image/C4D03AQH1XHqqND9Syg/profile-displayphoto-shrink_400_400/0/1588010132707?e=1658361600&v=beta&t=qRhIGUjwBx9BnThdKR2kgbjkZDh0m2x5mx9FntgKPEA' width='100' height='100' style='border-radius:50%; margin:.8cm'> <br>Muhamed TUO                      | <img src='https://avatars.githubusercontent.com/u/45461704?s=96&v=4' width='100' height='100' style='border-radius:50%; margin:.8cm'> <br>Elie Alex Kameni Ngangue                      |
+| <img src='https://avatars.githubusercontent.com/u/28601730?v=4' width='100' height='100' style='border-radius:50%; margin:.8cm'> <br>Emmanuel KOUPOH                        | <img src='https://avatars.githubusercontent.com/u/45067126?v=4' width='100' height='100' style='border-radius:50%; margin:.8cm'> <br>Cédric MANOUAN                      | <img src='https://avatars.githubusercontent.com/u/28511546?v=4' width='100' height='100' style='border-radius:50%; margin:.8cm'> <br>Muhamed TUO                      | <img src='https://avatars.githubusercontent.com/u/45461704?s=96&v=4' width='100' height='100' style='border-radius:50%; margin:.8cm'> <br>Elie Alex Kameni Ngangue                      |
 |--------------------------------------|-------------------------------|----------------------------------------------|----------------------------------------------|
 | [eaedk](https://github.com/eaedk) | [dric2018](https://github.com/dric2018) | [NazarioR9](https://github.com/NazarioR9)| [KameniAlexNea](https://github.com/KameniAlexNea) |
 | [Emmanuel on linkedin](https://www.linkedin.com/in/esaïe-alain-emmanuel-dina-koupoh-7b974a17a) | [Cedric on linkedin](https://www.linkedin.com/in/cédric-pascal-emmanuel-manouan-ba9ba1181) | [Muhamed on linkedin](https://www.linkedin.com/in/muhamed-tuo-b1b3a0162) | [Alex on linkedin](https://www.linkedin.com/in/elie-alex-kameni-ngangue) |
@@ -73,8 +65,4 @@ We will update this table soon ... Now you can refer to the notebook and **Usage
 
 
 Dont forget to visite [ZINDI Plateform](www.zindi.africa)<br>
-<img src='https://media-exp1.licdn.com/dms/image/C4D1BAQFlZkR1frDd6w/company-background_10000/0/1632989550932?e=1653228000&v=beta&t=ApaXaPwZhe0UtIQp7gz_wF9eJKNrMMPp0xpnjS3vL9E' width='90%' height='200' style='border-radius:5; margin:.8cm'>
-
-
-</div>
-<blockquote class="twitter-tweet"><p lang="en" dir="ltr">Africa&#39;s biggest inter-university machine learning hackathon is back for Round 2!! 🎉😁 <a href="https://twitter.com/hashtag/UmojaHackAfrica2021?src=hash&amp;ref_src=twsrc%5Etfw">#UmojaHackAfrica2021</a> is set to kick off on 27 March! So get your teams together and apply today! 🌈🌍 <a href="https://twitter.com/hashtag/BuildingAITogether?src=hash&amp;ref_src=twsrc%5Etfw">#BuildingAITogether</a> <a href="https://twitter.com/hashtag/ZindiHack?src=hash&amp;ref_src=twsrc%5Etfw">#ZindiHack</a><br>APPLY NOW👉<a href="https://t.co/bNqx0d5Odc">https://t.co/bNqx0d5Odc</a> <a href="https://t.co/Tgd4vZw9pb">pic.twitter.com/Tgd4vZw9pb</a></p>&mdash; Zindi (@ZindiAfrica) <a href="https://twitter.com/ZindiAfrica/status/1359502643849273351?ref_src=twsrc%5Etfw">February 10, 2021</a></blockquote>
+<img src='https://yt3.ggpht.com/NLdtJ6iB3VS1-4hxjNf5ODgSYxGx4Dvpi25J4KBc3rT5HlSSyqqEW4zvKi8KJtDlxQXxdb5FFao=s68-c-k-c0x00ffffff-no-rj' width='90%' height='200' style='border-radius:5; margin:.8cm'>

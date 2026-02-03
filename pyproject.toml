@@ -58,7 +58,7 @@ dev = [
     "isort",
     "safety",
     "mypy",
-    "bump2version", # From setup.py setup_requires
+    "bump2version",
 ]
 
 [tool.hatch.version]

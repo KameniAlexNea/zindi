@@ -30,13 +30,16 @@ def download(url="https://", filename="", headers: dict = {}):
     )
     response.raise_for_status()  # check if there is no error
     total = int(response.headers.get("content-length", 0))
-    with open(filename, "wb") as file, tqdm(
-        desc=filename,
-        total=total,
-        unit="o",
-        unit_scale=True,
-        unit_divisor=1024,
-    ) as bar:
+    with (
+        open(filename, "wb") as file,
+        tqdm(
+            desc=filename,
+            total=total,
+            unit="o",
+            unit_scale=True,
+            unit_divisor=1024,
+        ) as bar,
+    ):
         for data in response.iter_content(chunk_size=1024):
             size = file.write(data)
             bar.update(size)
@@ -396,7 +399,9 @@ def join_challenge(url, headers, code=False):
 
 
 ## Get available challenges
-def get_challenges(reward="all", kind="competition", active="all", url="", headers="", per_page=20):
+def get_challenges(
+    reward="all", kind="competition", active="all", url="", headers="", per_page=20
+):
     """Get the available Zindi's challenges using filter options.
 
     Parameters
