@@ -20,8 +20,6 @@ from zindi.utils import (
     user_on_lb,
 )
 
-# from zindi.utils import *
-
 
 # Class declaration and init
 class Zindian:
@@ -39,7 +37,7 @@ class Zindian:
 
         """
         self.__headers = {
-            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.116 Safari/537.36"
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36"
         }
         self.__base_api = "https://api.zindi.africa/v1/competitions"
         self.__auth_data = self.__signin(
@@ -181,7 +179,12 @@ class Zindian:
     # Challenge
     ## Select a challenge to participate in
     def select_a_challenge(
-        self, reward="all", kind="competition", active="all", fixed_index=None
+        self,
+        reward="all",
+        kind="competition",
+        active="all",
+        fixed_index=None,
+        per_page=20,
     ):
         """Select a challenge among those available on Zindi, using filter options.
 
@@ -196,13 +199,20 @@ class Zindian:
 
         fixed_index : int, default=None
             The set index of the selected challenge : for test.
+        per_page : int, default=20
+            The number of challenges to retrieve per page.
 
         """
 
         headers = self.__headers
         url = self.__base_api
         challenges_data = get_challenges(
-            reward=reward, kind=kind, active=active, url=url, headers=headers
+            reward=reward,
+            kind=kind,
+            active=active,
+            url=url,
+            headers=headers,
+            per_page=per_page,
         )
         n_challenges = challenges_data.shape[0]
 
@@ -243,14 +253,14 @@ class Zindian:
 
         Parameters
         ----------
-        destination : int, default='.'
+        destination : str, default='.'
             The dataset's destination folder .
-        make_destination : boolean, default=True
+        make_destination : bool, default=True
             Create destination folder if doesn't exist.
 
         """
 
-        if not os.path.isdir(destination):
+        if not os.path.isdir(destination) and make_destination:
             os.makedirs(destination, exist_ok=True)
         if self.__challenge_selected:
             headers = {**self.__headers, "auth_token": self.__auth_data["auth_token"]}

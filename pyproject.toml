@@ -30,10 +30,10 @@ classifiers = [
     "Topic :: Scientific/Engineering",
 ]
 dependencies = [
-    "tdqm==0.0.1",
-    "requests==2.32.3",
-    "pandas==2.2.3",
-    "requests-toolbelt==1.0.0",
+    "tdqm",
+    "requests",
+    "pandas",
+    "requests-toolbelt",
 ]
 
 [project.urls]
@@ -58,7 +58,7 @@ dev = [
     "isort",
     "safety",
     "mypy",
-    "bump2version", # From setup.py setup_requires
+    "bump2version",
 ]
 
 [tool.hatch.version]
