@@ -129,9 +129,9 @@ class TestApiHelpers(unittest.TestCase):
 
         expected_params = {
             "page": 0,
-            "per_page": 800,
+            "per_page": 20,
             "prize": "prize",
-            "kind": "competition",
+            "kind%5B%5D": "competition",
             "active": 1,
         }
         mock_get.assert_called_once_with(url, headers=headers, params=expected_params)
@@ -157,9 +157,9 @@ class TestApiHelpers(unittest.TestCase):
         # Expect default/empty filters for invalid values
         expected_params = {
             "page": 0,
-            "per_page": 800,
+            "per_page": 20,
             "prize": "",
-            "kind": "competition",
+            "kind%5B%5D": "competition",
             "active": "",
         }
         mock_get.assert_called_once_with(url, headers=headers, params=expected_params)

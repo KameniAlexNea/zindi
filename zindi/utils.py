@@ -396,7 +396,7 @@ def join_challenge(url, headers, code=False):
 
 
 ## Get available challenges
-def get_challenges(reward="all", kind="competition", active="all", url="", headers=""):
+def get_challenges(reward="all", kind="competition", active="all", url="", headers="", per_page=20):
     """Get the available Zindi's challenges using filter options.
 
     Parameters
@@ -442,7 +442,8 @@ def get_challenges(reward="all", kind="competition", active="all", url="", heade
     )
     active = "" if isinstance(active, str) else int(active)
     # join sorting params in a dictionary which will be passed in the url
-    sorting_params = dict(page=0, per_page=800, prize=reward, kind=kind, active=active)
+    sorting_params = dict(page=0, per_page=per_page, prize=reward, active=active)
+    sorting_params["kind%5B%5D"] = kind
 
     # request
     response = requests.get(url, headers=headers, params=sorting_params)
