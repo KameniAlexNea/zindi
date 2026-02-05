@@ -1,4 +1,5 @@
 import os
+from typing import Literal
 
 import pandas as pd
 import requests
@@ -360,21 +361,20 @@ def print_submission_board(submissions_data):
 
 ## Join challenge
 def join_challenge(url, headers, code=False):
-    """Formated print the Zindi's challenge submission-board as table.
+    """Join a Zindi challenge.
 
     Parameters
     ----------
     url : string
-        The url of the selected challenge.
+        The url of the selected challenge participations endpoint.
     headers : dictionary
-        The headers of the request to participate in a challenge.
+        The headers of the request (should include 'auth-token').
+    code : bool, default=False
+        Whether a secret code is required.
     """
 
-    # {secret_code: "cccccccccc"}
     if not code:
-        response = requests.post(
-            url=url, headers=headers, data={"auth_token": headers["auth_token"]}
-        )
+        response = requests.post(url=url, headers=headers)
     else:
         secret_code = input("Enter the secret code to join the challenge.\n>>")
         params = {"secret_code": secret_code}
@@ -400,23 +400,32 @@ def join_challenge(url, headers, code=False):
 
 ## Get available challenges
 def get_challenges(
-    reward="all", kind="competition", active="all", url="", headers="", per_page=20
+    query: str = None,
+    kind: Literal["competition", "hackathon"] = "competition",
+    reward: Literal["prize", "points", "knowledge"] = None,
+    active: bool = True,
+    url: str = "",
+    headers: dict = {},
+    per_page: int = 20,
 ):
     """Get the available Zindi's challenges using filter options.
 
     Parameters
     ----------
-    reward : {'prize', 'points', 'knowledge' , 'all'}, default='all'
-        The reward of the challenges for top challengers.
+    query : str, default=None
+        Text search query to filter challenges by name.
     kind : {'competition', 'hackathon'}, default='competition'
         The kind of the challenges.
-    active : {True, False, 'all'}, default='all'
-        The status of the challenges.
-
+    reward : {'prize', 'points', 'knowledge'}, default=None
+        The reward type of the challenges. None means all rewards.
+    active : bool, default=True
+        Whether to show only active challenges.
     url : string
-        The url of the selected challenge.
+        The base API url for competitions.
     headers : dictionary
-        The headers of the request to participate in a challenge.
+        The headers of the request.
+    per_page : int, default=20
+        Number of challenges to retrieve per page.
 
     Returns
     -------
@@ -436,29 +445,28 @@ def get_challenges(
     ]
     challenges_data = pd.DataFrame()
 
-    # check validity of challenge sorting's values
-    reward = (
-        "" if reward.lower() not in ["prize", "points", "knowledge"] else reward.lower()
-    )
-    kind = (
-        "competition"
-        if kind.lower() not in ["competition", "hackathon"]
-        else kind.lower()
-    )
-    active = "" if isinstance(active, str) else int(active)
-    # join sorting params in a dictionary which will be passed in the url
-    sorting_params = dict(page=0, per_page=per_page, prize=reward, active=active)
-    sorting_params["kind%5B%5D"] = kind
+    # Build query parameters
+    params = {
+        "page": 0,
+        "per_page": per_page,
+        "active": str(active).lower(),
+        "kind[]": kind,
+    }
+    if query:
+        params["query"] = query
+    if reward and reward.lower() in ["prize", "points", "knowledge"]:
+        params["prize"] = reward.lower()
 
     # request
-    response = requests.get(url, headers=headers, params=sorting_params)
+    response = requests.get(url, headers=headers, params=params)
     response = response.json()["data"]
     try:  # raise error if request failed
         print(response["errors"])
     except:  # else go on in processing
         challenges_data = pd.DataFrame(response)
-        # extract relevant columns and print the recap table
-        challenges_data = challenges_data[to_show_challenge_data]
+        if not challenges_data.empty:
+            # extract relevant columns and print the recap table
+            challenges_data = challenges_data[to_show_challenge_data]
     return challenges_data
 
 
@@ -574,37 +582,3 @@ def user_on_lb(challengers_data, challenge_id, username, headers):
     except:
         user_rank = 0  # rank initialization if user is not yet active for the challenge
     return user_rank
-
-
-## Info about number of submissions to do by day
-def n_subimissions_per_day(url, headers):
-    """Get the number of submissions we can make per day for the selected challenge.
-
-    Parameters
-    ----------
-    url : {'prize', 'points', 'knowledge' , 'all'}, default='all'
-        The reward of the challenges for top challengers.
-    headers : dictionary ,
-        The headers of the request.
-    Returns
-    -------
-    n_sub : int, default=0 : Means error during info retrieval.
-        The number of submissions we can make per day.
-    """
-
-    response = requests.get(url=url, headers=headers)
-    response = response.json()["data"]
-    for info in response["pages"]:
-        if info["title"] == "Rules":
-            break
-    n_sub = (
-        info["content_html"]
-        .split("You may make a maximum of")[-1]
-        .split("submissions per day.")[0]
-        .strip()
-    )
-    try:  # raise error if there is any problem
-        n_sub = int(n_sub)
-    except:  # else n of subimission_per_day is unknown
-        n_sub = 0
-    return n_sub
