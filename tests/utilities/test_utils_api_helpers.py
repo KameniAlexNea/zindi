@@ -39,11 +39,11 @@ class TestApiHelpers(unittest.TestCase):
     def test_join_challenge_success(self, mock_print, mock_post):
         """Test joining a challenge successfully."""
         mock_post.return_value.json.return_value = {"data": {"ids": [123]}}
-        headers = {"auth_token": "token"}
+        headers = {"auth-token": "token"}
         url = "http://example.com/participations"
         utils.join_challenge(url=url, headers=headers)
         mock_post.assert_called_once_with(
-            url=url, headers=headers, data={"auth_token": "token"}
+            url=url, headers=headers,
         )
         mock_print.assert_any_call(
             "\n[ 🟢 ] Welcome for the first time to this challenge.\n"
@@ -56,11 +56,11 @@ class TestApiHelpers(unittest.TestCase):
         mock_post.return_value.json.return_value = {
             "data": {"errors": {"message": "already in"}}
         }
-        headers = {"auth_token": "token"}
+        headers = {"auth-token": "token"}
         url = "http://example.com/participations"
         utils.join_challenge(url=url, headers=headers)
         mock_post.assert_called_once_with(
-            url=url, headers=headers, data={"auth_token": "token"}
+            url=url, headers=headers,
         )
         # Should not print success or raise error
 
@@ -82,7 +82,7 @@ class TestApiHelpers(unittest.TestCase):
             ),
             MagicMock(json=lambda: {"data": {"ids": [456]}}),
         ]
-        headers = {"auth_token": "token"}
+        headers = {"auth-token": "token"}
         url = "http://example.com/participations"
 
         utils.join_challenge(url=url, headers=headers)
@@ -90,7 +90,7 @@ class TestApiHelpers(unittest.TestCase):
         self.assertEqual(mock_post.call_count, 2)
         # First call (no code)
         mock_post.assert_any_call(
-            url=url, headers=headers, data={"auth_token": "token"}
+            url=url, headers=headers,
         )
         # Second call (with code)
         mock_post.assert_any_call(
@@ -107,7 +107,7 @@ class TestApiHelpers(unittest.TestCase):
         mock_post.return_value.json.return_value = {
             "data": {"errors": {"message": "Some other error"}}
         }
-        headers = {"auth_token": "token"}
+        headers = {"auth-token": "token"}
         url = "http://example.com/participations"
         with self.assertRaises(Exception) as cm:
             utils.join_challenge(url=url, headers=headers)
@@ -131,8 +131,8 @@ class TestApiHelpers(unittest.TestCase):
             "page": 0,
             "per_page": 20,
             "prize": "prize",
-            "kind%5B%5D": "competition",
-            "active": 1,
+            "kind[]": "competition",
+            "active": "true",
         }
         mock_get.assert_called_once_with(url, headers=headers, params=expected_params)
         pd.testing.assert_frame_equal(df, SAMPLE_CHALLENGES_DATA)
@@ -158,8 +158,7 @@ class TestApiHelpers(unittest.TestCase):
         expected_params = {
             "page": 0,
             "per_page": 20,
-            "prize": "",
-            "kind%5B%5D": "competition",
+            "kind[]": "competition",
             "active": "",
         }
         mock_get.assert_called_once_with(url, headers=headers, params=expected_params)

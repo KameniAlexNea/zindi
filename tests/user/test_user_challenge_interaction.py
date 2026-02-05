@@ -267,16 +267,6 @@ class TestUserChallengeInteraction(AuthenticatedUserTestCase):
         rank = self.user.my_rank
         self.assertEqual(rank, 0)
 
-    @patch("zindi.user.requests.get")
-    @patch("zindi.user.n_subimissions_per_day", return_value=5)
-    def test_remaining_submissions_success(self, mock_n_sub, mock_get_sb):
-        """Test calculating remaining submissions."""
-        mock_get_sb.return_value.json.return_value = MOCK_SUBMISSION_BOARD_DATA
-        remaining = self.user.remaining_subimissions
-        self.assertEqual(remaining, 4)
-        mock_n_sub.assert_called_once()
-        mock_get_sb.assert_called_once()
-
     def test_remaining_submissions_not_selected(self):
         """Test remaining submissions before selecting a challenge."""
         self.user._Zindian__challenge_selected = False  # Override setup

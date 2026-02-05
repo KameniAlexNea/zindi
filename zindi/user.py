@@ -1,10 +1,8 @@
 # Imports
 
-import datetime
 import os
 from getpass import getpass
 
-import pandas as pd
 import requests
 
 from zindi.utils import (
@@ -12,7 +10,6 @@ from zindi.utils import (
     download,
     get_challenges,
     join_challenge,
-    n_subimissions_per_day,
     print_challenges,
     print_lb,
     print_submission_board,
@@ -68,19 +65,40 @@ class Zindian:
         """Property: Get the user rank on the leaderboard for the selected challenge."""
 
         if self.__challenge_selected:
-            self.leaderboard(to_print=False)
-            int_rank = self.__rank
+            url = f"{self.__api}/participations/my_participation"
+            headers = {
+                **self.__headers,
+                "auth-token": self.__auth_data["auth_token"],
+                "current-url": f"https://zindi.africa/competitions/{self.__challenge_data['id']}/leaderboard",
+            }
+
+            response = requests.get(url, headers=headers)
+            response_data = response.json()["data"]
+
+            if "errors" in response_data:
+                error_msg = f"\n[ 🔴 ] {response_data['errors']}\n"
+                raise Exception(error_msg)
+
+            int_rank = response_data.get("public_rank", 0) or 0
+            self.__rank = int_rank
+
             if int_rank == 0:
                 rank = "not yet"
             elif str(int_rank)[-1] == "1":
-                if str(int_rank)[-2] == "1":
+                if len(str(int_rank)) > 1 and str(int_rank)[-2] == "1":
                     rank = f"{int_rank}th"
                 else:
                     rank = f"{int_rank}st"
             elif str(int_rank)[-1] == "2":
-                rank = f"{int_rank}nd"
+                if len(str(int_rank)) > 1 and str(int_rank)[-2] == "1":
+                    rank = f"{int_rank}th"
+                else:
+                    rank = f"{int_rank}nd"
             elif str(int_rank)[-1] == "3":
-                rank = f"{int_rank}rd"
+                if len(str(int_rank)) > 1 and str(int_rank)[-2] == "1":
+                    rank = f"{int_rank}th"
+                else:
+                    rank = f"{int_rank}rd"
             else:
                 rank = f"{int_rank}th"
             msg = f"\n[ 🟢 ] You are {rank} on the leaderboad of {self.__challenge_data['id']} challenge, Go on...\n"
@@ -98,39 +116,22 @@ class Zindian:
 
         Returns
         -------
-        free_submissions : int, default=n_subimissions_per_day.
+        free_submissions : int
             The number of now remaining submissions.
         """
         free_submissions = None
         if self.__challenge_selected:
-            url = self.__api
-            headers = {**self.__headers, "auth_token": self.__auth_data["auth_token"]}
-            n_sub = n_subimissions_per_day(url=url, headers=headers)
-            n_submitted_today = 0
-            self.submission_board(to_print=False)
-            sb_time = pd.DataFrame(self.__sb_data)
+            url = f"{self.__api}/submissions/limits"
+            headers = {**self.__headers, "auth-token": self.__auth_data["auth_token"], "current-url": f"{self.__api}/submit"}
 
-            if n_sub > 0:
-                if sb_time.shape[0] != 0:
-                    sb_time = sb_time[
-                        ["id", "status", "created_at", "filename"]
-                    ]  # get useful columns
-                    sb_time["created_at"] = pd.to_datetime(
-                        sb_time["created_at"]
-                    )  # .tz_localize('UTC')
-                    sb_time["now"] = pd.to_datetime(
-                        datetime.datetime.utcnow()
-                    ).tz_localize("UTC")
-                    sb_time["delta"] = sb_time["now"] - sb_time["created_at"]
-                    n_submitted_today = sb_time[
-                        (sb_time.status.isin(["successful", "initial"]))
-                        & (sb_time.delta.dt.days < 1)
-                    ].shape[0]
-                    free_submissions = n_sub - n_submitted_today
-                else:
-                    free_submissions = n_sub
-            else:
-                free_submissions = n_sub
+            response = requests.get(url, headers=headers)
+            response_data = response.json()["data"]
+
+            if "errors" in response_data:
+                error_msg = f"\n[ 🔴 ] {response_data['errors']}\n"
+                raise Exception(error_msg)
+
+            free_submissions = response_data["today"]
             msg = f"\n[ 🟢 ] You have {free_submissions} remaining submissions for the challenge {self.__challenge_data['id']}.\n"
             print(msg)
         else:
@@ -180,35 +181,71 @@ class Zindian:
     ## Select a challenge to participate in
     def select_a_challenge(
         self,
-        reward="all",
-        kind="competition",
-        active="all",
-        fixed_index=None,
-        per_page=20,
+        challenge_id: str = None,
+        query: str = None,
+        kind: str = "competition",
+        reward: str = None,
+        active: bool = True,
+        fixed_index: int = None,
+        per_page: int = 20,
     ):
         """Select a challenge among those available on Zindi, using filter options.
 
         Parameters
         ----------
-        reward : {'prize', 'points', 'knowledge' , 'all'}, default='all'
-            The reward of the challenges for top challengers.
+        challenge_id : str, default=None
+            Direct challenge ID to select (e.g., 'digicow-farmer-training-adoption-challenge').
+            If provided, other filter parameters are ignored.
+        query : str, default=None
+            Text search query to filter challenges by name (e.g., 'Digi', 'Health').
         kind : {'competition', 'hackathon'}, default='competition'
             The kind of the challenges.
-        active : {True, False, 'all'}, default='all'
-            The status of the challenges.
-
+        reward : {'prize', 'points', 'knowledge'}, default=None
+            The reward type of the challenges. None means all rewards.
+        active : bool, default=True
+            Whether to show only active challenges.
         fixed_index : int, default=None
-            The set index of the selected challenge : for test.
+            The set index of the selected challenge (for programmatic selection).
         per_page : int, default=20
             The number of challenges to retrieve per page.
 
         """
 
-        headers = self.__headers
+        headers = {
+            **self.__headers,
+            "auth-token": self.__auth_data["auth_token"],
+            "current-url": "https://zindi.africa/competitions",
+        }
+
+        # Direct selection by challenge_id
+        if challenge_id:
+            url = f"{self.__base_api}/{challenge_id}"
+            response = requests.get(url, headers=headers)
+            response_data = response.json()["data"]
+
+            if "errors" in response_data:
+                error_msg = f"\n[ 🔴 ] Challenge '{challenge_id}' not found.\n"
+                print(error_msg)
+                return
+
+            self.__challenge_data = response_data
+            self.__api = url
+            self.__challenge_selected = True
+
+            # Join the challenge
+            join_url = f"{self.__api}/participations"
+            print(
+                f"\n[ 🟢 ] You choose the challenge : {self.__challenge_data['id']},\n\t{self.__challenge_data.get('subtitle', '')}\n"
+            )
+            join_challenge(url=join_url, headers=headers)
+            return
+
+        # Search-based selection
         url = self.__base_api
         challenges_data = get_challenges(
-            reward=reward,
+            query=query,
             kind=kind,
+            reward=reward,
             active=active,
             url=url,
             headers=headers,
@@ -216,28 +253,23 @@ class Zindian:
         )
         n_challenges = challenges_data.shape[0]
 
+        if n_challenges == 0:
+            print("\n[ 🔴 ] No challenges found matching your criteria.\n")
+            return
+
         if fixed_index is None:
             print_challenges(challenges_data=challenges_data)
             challenge_index = challenge_idx_selector(n_challenges)
         else:
-            error_msg = f"\n[ 🔴 ] The parameter 'fixed_index' must be an integer in range(0, {n_challenges}) to be valid.\n"
-            try:
-                if isinstance(fixed_index, int) and (fixed_index > -1):
-                    challenge_index = fixed_index
-                    if challenge_index > n_challenges:
-                        raise Exception(error_msg)
-                else:
-                    raise Exception(error_msg)
-            except Exception as e:
-                print(
-                    "\n[ 🔴 ] The parameter 'fixed_index' value must be None or a valid integer.\n"
-                )
-                raise Exception(e)
+            if not isinstance(fixed_index, int) or fixed_index < 0 or fixed_index >= n_challenges:
+                error_msg = f"\n[ 🔴 ] The parameter 'fixed_index' must be an integer in range(0, {n_challenges}).\n"
+                raise Exception(error_msg)
+            challenge_index = fixed_index
+
         if challenge_index > -1:
             self.__challenge_data = challenges_data.iloc[challenge_index]
             self.__api = f"{self.__base_api}/{self.__challenge_data['id']}"
             self.__challenge_selected = True
-            headers = {**self.__headers, "auth_token": self.__auth_data["auth_token"]}
             url = f"{self.__api}/participations"
             print(
                 f"\n[ 🟢 ] You choose the challenge : {self.__challenge_data['id']},\n\t{self.__challenge_data['subtitle']}.\n"
@@ -345,7 +377,7 @@ class Zindian:
             raise Exception(error_msg)
 
     ## Show leaderboard
-    def leaderboard(self, to_print=True):
+    def leaderboard(self, to_print=True, per_page=50):
         """Get the leaderboard and update the user rank for the selected challenge.
 
         Parameters
@@ -358,7 +390,6 @@ class Zindian:
         if self.__challenge_selected:
             headers = {**self.__headers, "auth_token": self.__auth_data["auth_token"]}
             url = f"{self.__api}/participations"
-            per_page = 100000
             params_in_url = {
                 "page": 0,
                 "per_page": per_page,
@@ -386,7 +417,7 @@ class Zindian:
             raise Exception(error_msg)
 
     ## Show Submission-board
-    def submission_board(self, to_print=True):
+    def submission_board(self, to_print=True, per_page=50):
         """Get the submission-board for the selected challenge and upadte the private parameters __sb_data for compute remaining submissions.
 
         Parameters
@@ -399,15 +430,15 @@ class Zindian:
         # to add : number of submission, available subissions to do
         if self.__challenge_selected:
             url = f"{self.__api}/submissions"
-            headers = {**self.__headers, "auth_token": self.__auth_data["auth_token"]}
+            headers = {**self.__headers, "auth-token": self.__auth_data["auth_token"]}
 
             params_in_url = {
-                "per_page": 1000
+                "per_page": per_page
             }  # per_page : max number of subimission to retrieve
             response = requests.get(
                 url,
                 headers=headers,
-                data={"auth_token": headers["auth_token"]},
+                data={"auth-token": headers["auth-token"]},
                 params=params_in_url,
             )
             print(response)

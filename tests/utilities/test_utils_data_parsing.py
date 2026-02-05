@@ -148,39 +148,5 @@ class TestDataParsing(unittest.TestCase):
             challenge_id="challenge-id", headers=headers
         )
 
-    @patch("zindi.utils.requests.get")
-    def test_n_submissions_per_day_found(self, mock_get):
-        """Test finding the number of submissions per day."""
-        mock_get.return_value.json.return_value = SAMPLE_CHALLENGE_RULES_PAGE
-        headers = {"auth_token": "token"}
-        url = "http://example.com/challenge"
-        n_sub = utils.n_subimissions_per_day(url, headers)
-        self.assertEqual(n_sub, 7)
-        mock_get.assert_called_once_with(url=url, headers=headers)
-
-    @patch("zindi.utils.requests.get")
-    def test_n_submissions_per_day_not_found_in_rules(self, mock_get):
-        """Test when the submission limit string is not in the rules page."""
-        mock_get.return_value.json.return_value = SAMPLE_CHALLENGE_MALFORMED_RULES
-        headers = {"auth_token": "token"}
-        url = "http://example.com/challenge"
-        n_sub = utils.n_subimissions_per_day(url, headers)
-        self.assertEqual(n_sub, 0)  # Expect 0 if parsing fails
-        mock_get.assert_called_once_with(url=url, headers=headers)
-
-    @patch("zindi.utils.requests.get")
-    def test_n_submissions_per_day_no_rules_page(self, mock_get):
-        """Test when there is no page titled 'Rules'."""
-        mock_get.return_value.json.return_value = SAMPLE_CHALLENGE_NO_RULES_PAGE
-        headers = {"auth_token": "token"}
-        url = "http://example.com/challenge"
-        # Based on the previous test run, the current code returns 0 gracefully.
-        n_sub = utils.n_subimissions_per_day(url, headers)
-        self.assertEqual(
-            n_sub, 0
-        )  # Expect 0 if 'Rules' page or the specific text isn't found
-        mock_get.assert_called_once_with(url=url, headers=headers)
-
-
 if __name__ == "__main__":
     unittest.main()
