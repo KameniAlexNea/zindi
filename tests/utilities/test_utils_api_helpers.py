@@ -158,7 +158,6 @@ class TestApiHelpers(unittest.TestCase):
         expected_params = {
             "page": 0,
             "per_page": 20,
-            "prize": "",
             "kind[]": "competition",
             "active": "",
         }

@@ -432,6 +432,13 @@ def get_challenges(
     challenges_data : pd.DataFrame
         The response of the request to get informations about the available challenges.
     """
+    if kind is not None and kind.lower() not in ["competition", "hackathon"]:
+        kind = "competition"  # default value
+    if reward is not None and reward.lower() not in ["prize", "points", "knowledge"]:
+        reward = ""  # default value
+    if not isinstance(active, bool):
+        active = ""  # default value
+    
 
     to_show_challenge_data = [
         "id",
