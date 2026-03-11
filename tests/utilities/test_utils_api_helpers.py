@@ -43,7 +43,8 @@ class TestApiHelpers(unittest.TestCase):
         url = "http://example.com/participations"
         utils.join_challenge(url=url, headers=headers)
         mock_post.assert_called_once_with(
-            url=url, headers=headers,
+            url=url,
+            headers=headers,
         )
         mock_print.assert_any_call(
             "\n[ 🟢 ] Welcome for the first time to this challenge.\n"
@@ -60,7 +61,8 @@ class TestApiHelpers(unittest.TestCase):
         url = "http://example.com/participations"
         utils.join_challenge(url=url, headers=headers)
         mock_post.assert_called_once_with(
-            url=url, headers=headers,
+            url=url,
+            headers=headers,
         )
         # Should not print success or raise error
 
@@ -90,7 +92,8 @@ class TestApiHelpers(unittest.TestCase):
         self.assertEqual(mock_post.call_count, 2)
         # First call (no code)
         mock_post.assert_any_call(
-            url=url, headers=headers,
+            url=url,
+            headers=headers,
         )
         # Second call (with code)
         mock_post.assert_any_call(

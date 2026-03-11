@@ -1,7 +1,6 @@
 import datetime
-import os
 import unittest
-from unittest.mock import call, patch
+from unittest.mock import patch
 
 import pandas as pd
 
@@ -9,10 +8,8 @@ from zindi.user import Zindian
 
 # Mock API responses (Copied from original file)
 MOCK_SIGNIN_SUCCESS = {
-    "data": {
-        "auth_token": "mock_token",
-        "user": {"username": "testuser", "id": 123},
-    }
+    "auth_token": "mock_token",
+    "user": {"username": "testuser", "id": 123},
 }
 MOCK_LEADERBOARD_DATA = {
     "data": [
@@ -106,16 +103,16 @@ MOCK_SUBMIT_FAILURE = {"data": {"errors": {"base": "Submission failed"}}}
 
 # --- Base Class for Tests Requiring Authenticated User ---
 class AuthenticatedUserTestCase(unittest.TestCase):
-    @patch("zindi.user.requests.post")
+    @patch("zindi.user.ZindiPlatformAPI.signin")
     @patch("zindi.user.getpass")
-    def setUp(self, mock_getpass, mock_post):
+    def setUp(self, mock_getpass, mock_signin):
         """Set up a mocked Zindian instance for tests."""
         mock_getpass.return_value = "password"
-        mock_post.return_value.json.return_value = MOCK_SIGNIN_SUCCESS
+        mock_signin.return_value = MOCK_SIGNIN_SUCCESS
         self.user = Zindian(username="testuser")
         # Prevent setUp mocks from interfering with test-specific mocks
         mock_getpass.reset_mock()
-        mock_post.reset_mock()
+        mock_signin.reset_mock()
 
 
 # --- Test Class for Challenge Interaction (Download, Submit, Boards, Rank) ---
@@ -139,42 +136,34 @@ class TestUserChallengeInteraction(AuthenticatedUserTestCase):
 
     @patch("zindi.user.os.makedirs")
     @patch("zindi.user.os.path.isdir", return_value=False)
-    @patch("zindi.user.requests.get")
+    @patch("zindi.user.ZindiPlatformAPI.get_competition")
     @patch("zindi.user.download")
     def test_download_dataset_success(
-        self, mock_util_download, mock_get, mock_isdir, mock_makedirs
+        self, mock_util_download, mock_get_competition, mock_isdir, mock_makedirs
     ):
         """Test successful dataset download."""
-        mock_get.return_value.json.return_value = MOCK_CHALLENGE_DETAILS_DATA
+        mock_get_competition.return_value = MOCK_CHALLENGE_DETAILS_DATA["data"]
         dest_folder = "./mock_dataset"
         self.user.download_dataset(destination=dest_folder)
 
         mock_isdir.assert_called_once_with(dest_folder)
         mock_makedirs.assert_called_once_with(dest_folder, exist_ok=True)
-        mock_get.assert_called_once_with(
-            self.user._Zindian__api,
-            headers={"User-Agent": unittest.mock.ANY, "auth_token": "mock_token"},
-            data={"auth_token": "mock_token"},
+        mock_get_competition.assert_called_once_with(
+            auth_token="mock_token",
+            challenge_id="challenge-2",
         )
         self.assertEqual(mock_util_download.call_count, 3)
-        expected_calls = [
-            call(  # Use call() for assert_has_calls
-                url=f"{self.user._Zindian__api}/files/Train.csv",
-                filename=os.path.join(dest_folder, "Train.csv"),
-                headers={"User-Agent": unittest.mock.ANY, "auth_token": "mock_token"},
-            ),
-            call(
-                url=f"{self.user._Zindian__api}/files/Test.csv",
-                filename=os.path.join(dest_folder, "Test.csv"),
-                headers={"User-Agent": unittest.mock.ANY, "auth_token": "mock_token"},
-            ),
-            call(
-                url=f"{self.user._Zindian__api}/files/SampleSubmission.csv",
-                filename=os.path.join(dest_folder, "SampleSubmission.csv"),
-                headers={"User-Agent": unittest.mock.ANY, "auth_token": "mock_token"},
-            ),
-        ]
-        mock_util_download.assert_has_calls(expected_calls, any_order=True)
+        called_urls = [kwargs["url"] for _, kwargs in mock_util_download.call_args_list]
+        self.assertIn(
+            f"{self.user._Zindian__base_api}/challenge-2/files/Train.csv", called_urls
+        )
+        self.assertIn(
+            f"{self.user._Zindian__base_api}/challenge-2/files/Test.csv", called_urls
+        )
+        self.assertIn(
+            f"{self.user._Zindian__base_api}/challenge-2/files/SampleSubmission.csv",
+            called_urls,
+        )
 
     def test_submit_not_selected_error(self):
         """Test submitting before selecting a challenge (edge case)."""
@@ -184,21 +173,23 @@ class TestUserChallengeInteraction(AuthenticatedUserTestCase):
         self.assertIn("select a challenge before", str(cm.exception))
 
     @patch("zindi.user.os.path.isfile", return_value=True)
-    @patch("zindi.user.upload")
-    def test_submit_success(self, mock_util_upload, mock_isfile):
+    @patch("zindi.user.ZindiPlatformAPI.submit_file")
+    def test_submit_success(self, mock_submit_file, mock_isfile):
         """Test successful submission."""
-        mock_util_upload.return_value.json.return_value = MOCK_SUBMIT_SUCCESS
+        mock_submit_file.return_value = MOCK_SUBMIT_SUCCESS["data"]
         filepath = "./submission.csv"
         comment = "Test submission"
-        self.user.submit(filepaths=[filepath], comments=[comment])
+        response = self.user.submit(filepaths=[filepath], comments=[comment])
 
         mock_isfile.assert_called_once_with(filepath)
-        mock_util_upload.assert_called_once_with(
+        mock_submit_file.assert_called_once_with(
+            auth_token="mock_token",
+            challenge_id="challenge-2",
             filepath=filepath,
             comment=comment,
-            url=f"{self.user._Zindian__api}/submissions",
-            headers={"User-Agent": unittest.mock.ANY, "auth_token": "mock_token"},
         )
+        self.assertEqual(response[0]["status"], "success")
+        self.assertEqual(response[0]["submission_id"], "sub-new-123")
 
     @patch("zindi.user.os.path.isfile", return_value=False)
     @patch("builtins.print")  # Mock print to check output
@@ -215,20 +206,24 @@ class TestUserChallengeInteraction(AuthenticatedUserTestCase):
     def test_submit_invalid_extension(self, mock_print):
         """Test submission with an invalid file extension."""
         filepath = "./submission.txt"
-        self.user.submit(filepaths=[filepath])
+        response = self.user.submit(filepaths=[filepath])
         mock_print.assert_any_call(
             f"\n[ 🔴 ] Submission file must be a CSV file ( .csv ),\n\tplease verify this filepath : {filepath}\n"
         )
+        self.assertEqual(response[0]["status"], "error")
+        self.assertEqual(response[0]["errors"], "invalid_extension")
 
-    @patch("zindi.user.requests.get")
-    @patch("zindi.user.participations", return_value=None)
-    def _leaderboard_success(self, mock_participations, mock_get):
+    @patch("zindi.user.ZindiPlatformAPI.get_my_participation")
+    @patch("zindi.user.ZindiPlatformAPI.get_leaderboard")
+    def _leaderboard_success(self, mock_get, mock_my_participation):
         """Test fetching the leaderboard successfully."""
-        mock_get.return_value.json.return_value = MOCK_LEADERBOARD_DATA
+        mock_get.return_value = MOCK_LEADERBOARD_DATA["data"]
+        mock_my_participation.return_value = {"public_rank": 2}
         self.user.leaderboard(to_print=False)
         mock_get.assert_called_once()
         self.assertEqual(len(self.user._Zindian__challengers_data), 3)
         self.assertEqual(self.user._Zindian__rank, 2)
+        mock_my_participation.assert_called_once()
 
     def test_leaderboard_not_selected_error(self):
         """Test fetching leaderboard before selecting a challenge (edge case)."""
@@ -237,13 +232,39 @@ class TestUserChallengeInteraction(AuthenticatedUserTestCase):
             self.user.leaderboard()
         self.assertIn("select a challenge before", str(cm.exception))
 
-    @patch("zindi.user.requests.get")
+    @patch("zindi.user.ZindiPlatformAPI.get_submission_history")
     def test_submission_board_success(self, mock_get):
         """Test fetching the submission board successfully."""
-        mock_get.return_value.json.return_value = MOCK_SUBMISSION_BOARD_DATA
-        self.user.submission_board(to_print=False)
+        mock_get.return_value = MOCK_SUBMISSION_BOARD_DATA["data"]
+        response = self.user.submission_board(to_print=False)
         mock_get.assert_called_once()
         self.assertEqual(len(self.user._Zindian__sb_data), 3)
+        self.assertEqual(len(response), 3)
+
+    @patch("zindi.user.ZindiPlatformAPI.get_my_participation")
+    @patch("zindi.user.ZindiPlatformAPI.get_leaderboard")
+    def test_leaderboard_success_return(self, mock_get, mock_my_participation):
+        """Test leaderboard returns rank and rows."""
+        mock_get.return_value = MOCK_LEADERBOARD_DATA["data"]
+        mock_my_participation.return_value = {"public_rank": 2}
+        response = self.user.leaderboard(to_print=False)
+
+        self.assertEqual(response["rank"], 2)
+        self.assertEqual(len(response["leaderboard"]), 3)
+        mock_my_participation.assert_called_once()
+
+    @patch("zindi.user.ZindiPlatformAPI.get_my_participation")
+    @patch("zindi.user.ZindiPlatformAPI.get_leaderboard")
+    def test_leaderboard_rank_independent_from_page(
+        self, mock_get, mock_my_participation
+    ):
+        """Rank should not depend on per_page when API returns my participation rank."""
+        mock_get.return_value = MOCK_LEADERBOARD_DATA["data"][:1]
+        mock_my_participation.return_value = {"public_rank": 30}
+
+        response = self.user.leaderboard(to_print=False, per_page=1)
+
+        self.assertEqual(response["rank"], 30)
 
     def test_submission_board_not_selected_error(self):
         """Test fetching submission board before selecting a challenge (edge case)."""
@@ -252,11 +273,10 @@ class TestUserChallengeInteraction(AuthenticatedUserTestCase):
             self.user.submission_board()
         self.assertIn("select a challenge before", str(cm.exception))
 
-    @patch("zindi.user.requests.get")
-    @patch("zindi.user.participations", return_value=None)
-    def _my_rank_success(self, mock_participations, mock_get):
+    @patch("zindi.user.ZindiPlatformAPI.get_my_participation")
+    def _my_rank_success(self, mock_get):
         """Test getting user rank."""
-        mock_get.return_value.json.return_value = MOCK_LEADERBOARD_DATA
+        mock_get.return_value = {"public_rank": 2}
         rank = self.user.my_rank
         self.assertEqual(rank, 2)
         self.assertEqual(self.user._Zindian__rank, 2)
@@ -266,6 +286,19 @@ class TestUserChallengeInteraction(AuthenticatedUserTestCase):
         self.user._Zindian__challenge_selected = False  # Override setup
         rank = self.user.my_rank
         self.assertEqual(rank, 0)
+
+    @patch("zindi.user.ZindiPlatformAPI.get_leaderboard")
+    @patch("zindi.user.ZindiPlatformAPI.get_my_participation")
+    def test_my_rank_fallback_from_leaderboard(self, mock_my_participation, mock_lb):
+        """Test my_rank fallback when my_participation returns zero."""
+        mock_my_participation.return_value = {"public_rank": 0}
+        mock_lb.return_value = MOCK_LEADERBOARD_DATA["data"]
+
+        rank = self.user.my_rank
+
+        self.assertEqual(rank, 2)
+        mock_my_participation.assert_called_once()
+        mock_lb.assert_called_once()
 
     def test_remaining_submissions_not_selected(self):
         """Test remaining submissions before selecting a challenge."""

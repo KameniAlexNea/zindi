@@ -360,7 +360,7 @@ def print_submission_board(submissions_data):
 
 
 ## Join challenge
-def join_challenge(url, headers, code=False):
+def join_challenge(url, headers, code=False, to_print=True):
     """Join a Zindi challenge.
 
     Parameters
@@ -371,6 +371,8 @@ def join_challenge(url, headers, code=False):
         The headers of the request (should include 'auth-token').
     code : bool, default=False
         Whether a secret code is required.
+    to_print : bool, default=True
+        Whether to print interactive status messages.
     """
 
     if not code:
@@ -384,18 +386,20 @@ def join_challenge(url, headers, code=False):
     if "errors" in response:  # raise error if request failed
         error = response["errors"]["message"]
         if error in ["already in", "Great news! You've already joined the competition"]:
-            # print(f"\n[ 🟢 ] {error}\n")
-            pass
+            return {"joined": True, "message": error}
         elif error == "This competition requires a secret code to join.":
-            join_challenge(url, headers, code=True)
+            return join_challenge(url, headers, code=True, to_print=to_print)
         else:
             msg_error = f"\n[ 🔴 ] {error}\n"
             raise Exception(msg_error)
     else:  # else print success message
         if "ids" in response:
-            print("\n[ 🟢 ] Welcome for the first time to this challenge.\n")
+            if to_print:
+                print("\n[ 🟢 ] Welcome for the first time to this challenge.\n")
         else:
-            print("\n[ 🟢 ] {response}.\n")
+            if to_print:
+                print("\n[ 🟢 ] {response}.\n")
+    return {"joined": True, "message": response}
 
 
 ## Get available challenges
@@ -438,7 +442,6 @@ def get_challenges(
         reward = ""  # default value
     if not isinstance(active, bool):
         active = ""  # default value
-    
 
     to_show_challenge_data = [
         "id",

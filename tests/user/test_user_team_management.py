@@ -7,32 +7,30 @@ from zindi.user import Zindian
 
 # Mock API responses (Copied from original file)
 MOCK_SIGNIN_SUCCESS = {
-    "data": {
-        "auth_token": "mock_token",
-        "user": {"username": "testuser", "id": 123},
-    }
+    "auth_token": "mock_token",
+    "user": {"username": "testuser", "id": 123},
 }
-MOCK_CREATE_TEAM_SUCCESS = {"data": {"title": "New Team"}}
+MOCK_CREATE_TEAM_SUCCESS = {"title": "New Team"}
 MOCK_CREATE_TEAM_ALREADY_LEADER = {
-    "data": {"errors": {"base": "Leader can only be part of one team per competition."}}
+    "errors": {"base": "Leader can only be part of one team per competition."}
 }
-MOCK_TEAM_UP_SUCCESS = {"data": {"message": "Invitation sent"}}
-MOCK_TEAM_UP_ALREADY_INVITED = {"data": {"errors": {"base": "User is already invited"}}}
-MOCK_DISBAND_SUCCESS = {"data": "Team disbanded successfully"}
+MOCK_TEAM_UP_SUCCESS = {"message": "Invitation sent"}
+MOCK_TEAM_UP_ALREADY_INVITED = {"errors": {"base": "User is already invited"}}
+MOCK_DISBAND_SUCCESS = "Team disbanded successfully"
 
 
 # --- Base Class for Tests Requiring Authenticated User ---
 class AuthenticatedUserTestCase(unittest.TestCase):
-    @patch("zindi.user.requests.post")
+    @patch("zindi.user.ZindiPlatformAPI.signin")
     @patch("zindi.user.getpass")
-    def setUp(self, mock_getpass, mock_post):
+    def setUp(self, mock_getpass, mock_signin):
         """Set up a mocked Zindian instance for tests."""
         mock_getpass.return_value = "password"
-        mock_post.return_value.json.return_value = MOCK_SIGNIN_SUCCESS
+        mock_signin.return_value = MOCK_SIGNIN_SUCCESS
         self.user = Zindian(username="testuser")
         # Prevent setUp mocks from interfering with test-specific mocks
         mock_getpass.reset_mock()
-        mock_post.reset_mock()
+        mock_signin.reset_mock()
 
 
 # --- Test Class for Team Management ---
@@ -62,61 +60,62 @@ class TestUserTeamManagement(AuthenticatedUserTestCase):
             self.user.disband_team()
         self.assertIn("select a challenge before", str(cm_disband.exception))
 
-    @patch("zindi.user.requests.post")
-    def test_create_team_success(self, mock_post):
+    @patch("zindi.user.ZindiPlatformAPI.create_team")
+    def test_create_team_success(self, mock_create_team):
         """Test creating a team successfully."""
-        mock_post.return_value.json.return_value = MOCK_CREATE_TEAM_SUCCESS
-        self.user.create_team(team_name="New Team")
-        mock_post.assert_called_once_with(
-            f"{self.user._Zindian__api}/my_team",
-            headers={"User-Agent": unittest.mock.ANY},
-            data={"title": "New Team", "auth_token": "mock_token"},
+        mock_create_team.return_value = MOCK_CREATE_TEAM_SUCCESS
+        response = self.user.create_team(team_name="New Team")
+        mock_create_team.assert_called_once_with(
+            auth_token="mock_token",
+            challenge_id="challenge-team",
+            team_name="New Team",
         )
+        self.assertFalse(response["already_leader"])
+        self.assertEqual(response["team"]["title"], "New Team")
 
-    @patch("zindi.user.requests.post")
+    @patch("zindi.user.ZindiPlatformAPI.create_team")
     @patch("builtins.print")  # Mock print
-    def test_create_team_already_leader(self, mock_print, mock_post):
+    def test_create_team_already_leader(self, mock_print, mock_create_team):
         """Test creating a team when already a leader."""
-        mock_post.return_value.json.return_value = MOCK_CREATE_TEAM_ALREADY_LEADER
+        mock_create_team.return_value = MOCK_CREATE_TEAM_ALREADY_LEADER
         self.user.create_team(team_name="Another Team")
-        mock_post.assert_called_once()
+        mock_create_team.assert_called_once()
         mock_print.assert_any_call(f"\n[ 🟢 ] You are already the leader of a team.\n")
 
-    @patch("zindi.user.requests.post")
-    def test_team_up_success(self, mock_post):
+    @patch("zindi.user.ZindiPlatformAPI.invite_to_team")
+    def test_team_up_success(self, mock_invite):
         """Test inviting teammates successfully."""
-        mock_post.return_value.json.return_value = MOCK_TEAM_UP_SUCCESS
+        mock_invite.return_value = MOCK_TEAM_UP_SUCCESS
         teammates = ["friend1", "friend2"]
-        self.user.team_up(zindians=teammates)
+        response = self.user.team_up(zindians=teammates)
 
-        self.assertEqual(mock_post.call_count, 2)
-        # Check calls carefully - original code needs auth_token in data for invite POST
+        self.assertEqual(mock_invite.call_count, 2)
         expected_calls = [
             call(
-                f"{self.user._Zindian__api}/my_team/invite",
-                headers={"User-Agent": unittest.mock.ANY},
-                # data={"username": "friend1", "auth_token": "mock_token"} # Assuming auth_token should be here
-                data={"username": "friend1"},  # Based on original code
+                auth_token="mock_token",
+                challenge_id="challenge-team",
+                username="friend1",
             ),
             call(
-                f"{self.user._Zindian__api}/my_team/invite",
-                headers={"User-Agent": unittest.mock.ANY},
-                # data={"username": "friend2", "auth_token": "mock_token"} # Assuming auth_token should be here
-                data={"username": "friend2"},  # Based on original code
+                auth_token="mock_token",
+                challenge_id="challenge-team",
+                username="friend2",
             ),
         ]
-        mock_post.assert_has_calls(expected_calls, any_order=True)
+        mock_invite.assert_has_calls(expected_calls, any_order=True)
+        self.assertEqual(len(response), 2)
+        self.assertEqual(response[0]["status"], "invited")
 
-    @patch("zindi.user.requests.delete")
-    def test_disband_team_success(self, mock_delete):
+    @patch("zindi.user.ZindiPlatformAPI.disband_team")
+    def test_disband_team_success(self, mock_disband):
         """Test disbanding a team successfully."""
-        mock_delete.return_value.json.return_value = MOCK_DISBAND_SUCCESS
-        self.user.disband_team()
-        mock_delete.assert_called_once_with(
-            f"{self.user._Zindian__api}/my_team",
-            headers={"User-Agent": unittest.mock.ANY},
-            data={"auth_token": "mock_token"},
+        mock_disband.return_value = MOCK_DISBAND_SUCCESS
+        response = self.user.disband_team()
+        mock_disband.assert_called_once_with(
+            auth_token="mock_token",
+            challenge_id="challenge-team",
         )
+        self.assertEqual(response, "Team disbanded successfully")
 
 
 if __name__ == "__main__":
