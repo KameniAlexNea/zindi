@@ -34,7 +34,7 @@ dependencies = [
     "requests",
     "pandas",
     "requests-toolbelt",
-    "pydantic>=2,<3",
+    "pydantic>=2.9.2",
 ]
 
 [project.urls]
