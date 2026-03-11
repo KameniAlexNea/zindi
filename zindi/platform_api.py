@@ -11,7 +11,14 @@ class ZindiPlatformAPI:
         self.default_headers = default_headers
 
     def _response_data(self, response):
-        payload = response.json()
+        try:
+            payload = response.json()
+        except ValueError:
+            body_preview = (response.text or "").strip().replace("\n", " ")[:240]
+            raise Exception(
+                f"[ 🔴 ] Invalid non-JSON response from Zindi API "
+                f"(status={response.status_code}). Body preview: {body_preview}"
+            )
         return payload.get("data", payload)
 
     def _raise_on_errors(self, data):
@@ -43,16 +50,18 @@ class ZindiPlatformAPI:
         reward: str = None,
         active: bool = True,
         per_page: int = 20,
-        page: int = 1,
+        page: int = 0,
     ):
         url = self.base_api
+        kind_value = kind if kind in {"competition", "hackathon"} else "competition"
+        reward_value = reward if reward in {"prize", "points", "knowledge"} else None
         params = {
-            "active": active,
-            "kind": kind if kind in {"competition", "hackathon"} else None,
+            "active": str(active).lower(),
+            "kind[]": kind_value,
             "page": page,
             "per_page": per_page,
-            "q": query,
-            "reward": reward if reward in {"prize", "points", "knowledge"} else None,
+            "query": query,
+            "prize": reward_value,
         }
         params = {k: v for k, v in params.items() if v is not None}
         response = requests.get(

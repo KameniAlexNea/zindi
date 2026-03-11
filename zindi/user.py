@@ -104,6 +104,46 @@ class Zindian:
             return competitions.get("results", [])
         return competitions
 
+    def __normalize_challenges(self, competitions):
+        """Normalize challenge rows to the schema expected by print helpers."""
+
+        challenges_data = pd.DataFrame(competitions)
+        if challenges_data.empty:
+            return challenges_data
+
+        alias_map = {
+            "id": ["id", "slug"],
+            "kind": ["kind", "type"],
+            "subtitle": ["subtitle", "title", "name"],
+            "reward": ["reward", "prize"],
+            "type_of_problem": ["type_of_problem", "problem_type", "problem_types"],
+            "data_type": ["data_type", "dataset_type", "data_types"],
+            "secret_code_required": ["secret_code_required", "private"],
+            "sealed": ["sealed"],
+        }
+
+        normalized = pd.DataFrame(index=challenges_data.index)
+        for target, candidates in alias_map.items():
+            source = next((name for name in candidates if name in challenges_data.columns), None)
+            if source is None:
+                if target in {"type_of_problem", "data_type"}:
+                    normalized[target] = [[] for _ in range(len(challenges_data))]
+                elif target in {"secret_code_required", "sealed"}:
+                    normalized[target] = False
+                else:
+                    normalized[target] = ""
+            else:
+                normalized[target] = challenges_data[source]
+
+        for list_col in ["type_of_problem", "data_type"]:
+            normalized[list_col] = normalized[list_col].apply(
+                lambda x: x if isinstance(x, list) else ([] if pd.isna(x) else [str(x)])
+            )
+
+        normalized["secret_code_required"] = normalized["secret_code_required"].fillna(False).astype(bool)
+        normalized["sealed"] = normalized["sealed"].fillna(False).astype(bool)
+        return normalized
+
     def select_a_challenge(
         self,
         challenge_id: str = None,
@@ -144,7 +184,7 @@ class Zindian:
                     "message": "No challenges found matching your criteria.",
                 }
 
-            challenges_data = pd.DataFrame(competitions)
+            challenges_data = self.__normalize_challenges(competitions)
             n_challenges = challenges_data.shape[0]
             if fixed_index is None:
                 if self.__to_print if to_print is None else to_print:
