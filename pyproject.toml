@@ -1,10 +1,10 @@
 [build-system]
-requires = ["hatchling", "hatch-vcs"]
+requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
 name = "zindi"
-dynamic = ["version"]
+version = "0.0.4"
 description = "A user-friendly ZINDI package which allow Zindians to achieve all available tasks on ZINDI Platform using this package."
 readme = "README.md"
 requires-python = ">=3.9"
@@ -61,11 +61,6 @@ dev = [
     "mypy",
     "bump2version",
 ]
-
-[tool.hatch.version]
-source = "vcs"
-# Optional: configure tag pattern if not standard
-# path = "zindi/__init__.py" # If version is stored in __init__.py
 
 [tool.hatch.build.targets.wheel]
 packages = ["zindi"]

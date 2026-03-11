@@ -2,56 +2,71 @@
 
 ## Description
 
-A user-friendly ZINDI package which allow Zindians to achieve all available tasks on ZINDI Platform using this package.
+A user-friendly Python client for interacting with the Zindi platform.
 
 ## Installation
-
-Copy and Paste the instruction below in a Terminal or Jupyter Notebook.
 
 ```bash
 pip install -U zindi
 ```
 
-## Usage
-
-You can check the [colab notebook here](https://colab.research.google.com/drive/1zzAUWkJ8R5GQzxsdJ5i7XTxaGe2tmUF4?usp=sharing)
+## Quick start
 
 ```python
-# create a user object
 from zindi.user import Zindian
 
-my_username = "I_am_Zeus_AI"
-user = Zindian(username = my_username)
+# interactive mode (prints formatted tables/messages)
+user = Zindian(username="your_username")
 
-#desired output
-[ 🟢 ] 👋🏾👋🏾 Welcome I_am_Zeus_AI 👋🏾👋🏾
-
-
-user.select_a_challenge()                               # Select a Zindi challenge
-
-user.which_challenge                                    # Get information about the selected challenge
-
-user.leaderboard()                              # Show the Leaderboard of the selected challenge
-
-user.my_rank                                    # Get the user's leaderboard rank
-
-user.remaining_subimissions                         # Get information about how many submission you can still push now to Zindi
-
-user.submission_board()                         # Show the user's Submission-board of the selected challenge
-
-user.download_dataset(destination="t./dataset") # Download the dataset of the selected challenge
-
-user.submit(filepaths=['./dataset/SampleSubmission.csv'], comments=['initial submission']) # Push a submission to Zindi : the SampleSubmission file
-
-user.remaining_subimissions                             # Get information about how many submission you can still push now to Zindi
-
-user.submission_board()                             # Show the Submission-board of the selected challenge
-
-user.create_team(team_name="New Team")             # Create a team for the selected challenge
-
+# or tool/MCP-friendly mode (returns typed models)
+# user = Zindian(username="your_username", return_models=True, to_print=False)
 ```
 
-# Contributers
+## Usage
+
+You can also check the [Colab notebook](https://colab.research.google.com/drive/1zzAUWkJ8R5GQzxsdJ5i7XTxaGe2tmUF4?usp=sharing).
+
+```python
+# 1) Select challenge
+selection = user.select_a_challenge(challenge_id="digicow-farmer-training-adoption-challenge")
+
+# 2) Inspect challenge/rank
+current = user.which_challenge
+rank = user.my_rank
+
+# 3) Leaderboard and submission board
+leaderboard = user.leaderboard(per_page=50)
+board = user.submission_board(per_page=50)
+
+# 4) Download dataset and submit file
+files = user.download_dataset(destination="./dataset")
+submission = user.submit(
+	filepaths=["./dataset/SampleSubmission.csv"],
+	comments=["initial submission"],
+)
+
+# 5) Team actions
+team = user.create_team(team_name="New Team")
+```
+
+### Typed model outputs (recommended for integrations)
+
+```python
+user = Zindian(username="your_username", return_models=True, to_print=False)
+
+selection = user.select_a_challenge(query="DigiCow")
+print(selection)             # ChallengeSelectionResult(...)
+
+leaderboard = user.leaderboard(per_page=10)
+print(leaderboard)           # LeaderboardResult(rank=..., total_rows=...)
+
+submissions = user.submission_board(per_page=20)
+print(submissions)           # SubmissionBoardResult(total_rows=...)
+
+payload = leaderboard.to_dict()   # JSON-serializable dictionary
+```
+
+## Contributors
 
 <div align='center'>
 
@@ -64,5 +79,5 @@ user.create_team(team_name="New Team")             # Create a team for the selec
 <br>
 
 
-Dont forget to visite [ZINDI Plateform](www.zindi.africa)<br>
+Don’t forget to visit [Zindi Platform](https://www.zindi.africa)<br>
 <img src='https://yt3.ggpht.com/NLdtJ6iB3VS1-4hxjNf5ODgSYxGx4Dvpi25J4KBc3rT5HlSSyqqEW4zvKi8KJtDlxQXxdb5FFao=s68-c-k-c0x00ffffff-no-rj' width='90%' height='200' style='border-radius:5; margin:.8cm'>
