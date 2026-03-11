@@ -442,7 +442,6 @@ def get_challenges(
         reward = ""  # default value
     if not isinstance(active, bool):
         active = ""  # default value
-    
 
     to_show_challenge_data = [
         "id",

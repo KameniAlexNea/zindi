@@ -66,7 +66,9 @@ class ZindiPlatformAPI:
         params = {k: v for k, v in params.items() if v is not None}
         response = requests.get(
             url,
-            headers=self._auth_headers(auth_token, current_url="https://zindi.africa/competitions"),
+            headers=self._auth_headers(
+                auth_token, current_url="https://zindi.africa/competitions"
+            ),
             params=params,
         )
         data = self._response_data(response)
@@ -76,19 +78,28 @@ class ZindiPlatformAPI:
         url = f"{self.base_api}/{challenge_id}"
         response = requests.get(
             url,
-            headers=self._auth_headers(auth_token, current_url="https://zindi.africa/competitions"),
+            headers=self._auth_headers(
+                auth_token, current_url="https://zindi.africa/competitions"
+            ),
         )
         data = self._response_data(response)
         return self._raise_on_errors(data)
 
-    def join_competition(self, auth_token: str, challenge_id: str, secret_code: str = None):
+    def join_competition(
+        self, auth_token: str, challenge_id: str, secret_code: str = None
+    ):
         url = f"{self.base_api}/{challenge_id}/participations"
         params = {"secret_code": secret_code} if secret_code else None
-        response = requests.post(url, headers=self._auth_headers(auth_token), params=params)
+        response = requests.post(
+            url, headers=self._auth_headers(auth_token), params=params
+        )
         data = self._response_data(response)
         if "errors" in data:
             message = data["errors"].get("message", str(data["errors"]))
-            if message in {"already in", "Great news! You've already joined the competition"}:
+            if message in {
+                "already in",
+                "Great news! You've already joined the competition",
+            }:
                 return {"joined": True, "message": message}
             raise Exception(f"\n[ 🔴 ] {message}\n")
         return {"joined": True, "message": data}
@@ -97,7 +108,9 @@ class ZindiPlatformAPI:
         url = f"{self.base_api}/{challenge_id}/submissions/limits"
         response = requests.get(
             url,
-            headers=self._auth_headers(auth_token, current_url=f"{self.base_api}/{challenge_id}/submit"),
+            headers=self._auth_headers(
+                auth_token, current_url=f"{self.base_api}/{challenge_id}/submit"
+            ),
         )
         data = self._response_data(response)
         return self._raise_on_errors(data)
@@ -114,7 +127,9 @@ class ZindiPlatformAPI:
         data = self._response_data(response)
         return self._raise_on_errors(data)
 
-    def get_leaderboard(self, auth_token: str, challenge_id: str, per_page: int = 50, page: int = 0):
+    def get_leaderboard(
+        self, auth_token: str, challenge_id: str, per_page: int = 50, page: int = 0
+    ):
         url = f"{self.base_api}/{challenge_id}/participations"
         response = requests.get(
             url,
@@ -124,7 +139,9 @@ class ZindiPlatformAPI:
         data = self._response_data(response)
         return self._raise_on_errors(data)
 
-    def get_submission_history(self, auth_token: str, challenge_id: str, per_page: int = 50):
+    def get_submission_history(
+        self, auth_token: str, challenge_id: str, per_page: int = 50
+    ):
         url = f"{self.base_api}/{challenge_id}/submissions"
         response = requests.get(
             url,
@@ -135,7 +152,9 @@ class ZindiPlatformAPI:
         data = self._response_data(response)
         return self._raise_on_errors(data)
 
-    def submit_file(self, auth_token: str, challenge_id: str, filepath: str, comment: str):
+    def submit_file(
+        self, auth_token: str, challenge_id: str, filepath: str, comment: str
+    ):
         url = f"{self.base_api}/{challenge_id}/submissions"
         response = upload(
             filepath=filepath,
@@ -158,7 +177,9 @@ class ZindiPlatformAPI:
 
     def invite_to_team(self, auth_token: str, challenge_id: str, username: str):
         url = f"{self.base_api}/{challenge_id}/my_team/invite"
-        response = requests.post(url, headers=self.default_headers, data={"username": username})
+        response = requests.post(
+            url, headers=self.default_headers, data={"username": username}
+        )
         data = self._response_data(response)
         return data
 

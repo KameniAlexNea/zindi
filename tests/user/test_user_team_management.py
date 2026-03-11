@@ -91,8 +91,16 @@ class TestUserTeamManagement(AuthenticatedUserTestCase):
 
         self.assertEqual(mock_invite.call_count, 2)
         expected_calls = [
-            call(auth_token="mock_token", challenge_id="challenge-team", username="friend1"),
-            call(auth_token="mock_token", challenge_id="challenge-team", username="friend2"),
+            call(
+                auth_token="mock_token",
+                challenge_id="challenge-team",
+                username="friend1",
+            ),
+            call(
+                auth_token="mock_token",
+                challenge_id="challenge-team",
+                username="friend2",
+            ),
         ]
         mock_invite.assert_has_calls(expected_calls, any_order=True)
         self.assertEqual(len(response), 2)

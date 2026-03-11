@@ -5,6 +5,13 @@ from getpass import getpass
 
 import pandas as pd
 
+from zindi.models import (
+    ChallengeSelectionResult,
+    LeaderboardEntry,
+    LeaderboardResult,
+    SubmissionBoardResult,
+    SubmissionEntry,
+)
 from zindi.platform_api import ZindiPlatformAPI
 from zindi.utils import (
     challenge_idx_selector,
@@ -19,12 +26,20 @@ from zindi.utils import (
 class Zindian:
     """High-level user class for Zindi interactions with optional console output."""
 
-    def __init__(self, username, fixed_password=None, to_print=True, api_client=None):
+    def __init__(
+        self,
+        username,
+        fixed_password=None,
+        to_print=True,
+        api_client=None,
+        return_models=False,
+    ):
         self.__headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36"
         }
         self.__base_api = "https://api.zindi.africa/v1/competitions"
         self.__to_print = to_print
+        self.__return_models = return_models
         self.__api_client = api_client or ZindiPlatformAPI(
             base_api=self.__base_api,
             default_headers=self.__headers,
@@ -46,6 +61,22 @@ class Zindian:
             raise Exception(error_msg)
         return self.__challenge_data["id"]
 
+    def __rank_from_leaderboard_rows(self, rows):
+        """Resolve user rank directly from leaderboard rows.
+
+        This is a robust fallback when dedicated rank endpoints return 0.
+        """
+
+        username = self.__auth_data["user"]["username"]
+        for row in rows:
+            user = row.get("user") or {}
+            rank = row.get("private_rank")
+            if rank is None:
+                rank = row.get("public_rank")
+            if user.get("username") == username and rank is not None:
+                return int(rank)
+        return 0
+
     @property
     def which_challenge(self):
         if self.__challenge_selected:
@@ -57,11 +88,25 @@ class Zindian:
         if not self.__challenge_selected:
             return 0
         challenge_id = self.__require_challenge()
+        int_rank = 0
         response_data = self.__api_client.get_my_participation(
             auth_token=self.__auth_data["auth_token"],
             challenge_id=challenge_id,
         )
         int_rank = response_data.get("public_rank", 0) or 0
+
+        # Fallback: if dedicated endpoint reports 0, infer from leaderboard rows.
+        if int_rank == 0:
+            rows = getattr(self, "_Zindian__challengers_data", None)
+            if rows is None:
+                rows = self.__api_client.get_leaderboard(
+                    auth_token=self.__auth_data["auth_token"],
+                    challenge_id=challenge_id,
+                    per_page=500,
+                )
+                self.__challengers_data = rows
+            int_rank = self.__rank_from_leaderboard_rows(rows)
+
         self.__rank = int_rank
         return int_rank
 
@@ -77,9 +122,15 @@ class Zindian:
         return response_data.get("today")
 
     def __signin(self, username, fixed_password=None):
-        password = fixed_password if fixed_password is not None else getpass(prompt="Your password\n>> ")
+        password = (
+            fixed_password
+            if fixed_password is not None
+            else getpass(prompt="Your password\n>> ")
+        )
         response = self.__api_client.signin(username=username, password=password)
-        self.__emit(f"\n[ 🟢 ] 👋🏾👋🏾 Welcome {response['user']['username'] } 👋🏾👋🏾\n")
+        self.__emit(
+            f"\n[ 🟢 ] 👋🏾👋🏾 Welcome {response['user']['username'] } 👋🏾👋🏾\n"
+        )
         return response
 
     def search_competitions(
@@ -124,7 +175,9 @@ class Zindian:
 
         normalized = pd.DataFrame(index=challenges_data.index)
         for target, candidates in alias_map.items():
-            source = next((name for name in candidates if name in challenges_data.columns), None)
+            source = next(
+                (name for name in candidates if name in challenges_data.columns), None
+            )
             if source is None:
                 if target in {"type_of_problem", "data_type"}:
                     normalized[target] = [[] for _ in range(len(challenges_data))]
@@ -140,7 +193,9 @@ class Zindian:
                 lambda x: x if isinstance(x, list) else ([] if pd.isna(x) else [str(x)])
             )
 
-        normalized["secret_code_required"] = normalized["secret_code_required"].fillna(False).astype(bool)
+        normalized["secret_code_required"] = (
+            normalized["secret_code_required"].fillna(False).astype(bool)
+        )
         normalized["sealed"] = normalized["sealed"].fillna(False).astype(bool)
         return normalized
 
@@ -154,6 +209,7 @@ class Zindian:
         fixed_index: int = None,
         per_page: int = 20,
         to_print=None,
+        as_model=None,
     ):
         competitions = []
 
@@ -164,11 +220,15 @@ class Zindian:
                     challenge_id=challenge_id,
                 )
             except Exception:
-                return {
+                result = {
                     "challenge": None,
                     "joined": False,
                     "message": f"Challenge '{challenge_id}' not found.",
                 }
+                use_model = self.__return_models if as_model is None else as_model
+                return (
+                    ChallengeSelectionResult.from_raw(result) if use_model else result
+                )
         else:
             competitions = self.search_competitions(
                 query=query,
@@ -178,11 +238,15 @@ class Zindian:
                 per_page=per_page,
             )
             if len(competitions) == 0:
-                return {
+                result = {
                     "challenge": None,
                     "joined": False,
                     "message": "No challenges found matching your criteria.",
                 }
+                use_model = self.__return_models if as_model is None else as_model
+                return (
+                    ChallengeSelectionResult.from_raw(result) if use_model else result
+                )
 
             challenges_data = self.__normalize_challenges(competitions)
             n_challenges = challenges_data.shape[0]
@@ -202,11 +266,15 @@ class Zindian:
                 challenge_index = fixed_index
 
             if challenge_index < 0:
-                return {
+                result = {
                     "challenge": None,
                     "joined": False,
                     "message": "No challenge selected.",
                 }
+                use_model = self.__return_models if as_model is None else as_model
+                return (
+                    ChallengeSelectionResult.from_raw(result) if use_model else result
+                )
             self.__challenge_data = challenges_data.iloc[challenge_index].to_dict()
 
         challenge_id = self.__challenge_data["id"]
@@ -222,7 +290,9 @@ class Zindian:
             auth_token=self.__auth_data["auth_token"],
             challenge_id=challenge_id,
         )
-        return {"challenge": self.__challenge_data, "joined": join_response}
+        result = {"challenge": self.__challenge_data, "joined": join_response}
+        use_model = self.__return_models if as_model is None else as_model
+        return ChallengeSelectionResult.from_raw(result) if use_model else result
 
     def download_dataset(self, destination=".", make_destination=True):
         challenge_id = self.__require_challenge()
@@ -268,7 +338,11 @@ class Zindian:
                     to_print=to_print,
                 )
                 submissions.append(
-                    {"filepath": filepath, "status": "error", "errors": "invalid_extension"}
+                    {
+                        "filepath": filepath,
+                        "status": "error",
+                        "errors": "invalid_extension",
+                    }
                 )
                 continue
 
@@ -278,7 +352,11 @@ class Zindian:
                     to_print=to_print,
                 )
                 submissions.append(
-                    {"filepath": filepath, "status": "error", "errors": "file_not_found"}
+                    {
+                        "filepath": filepath,
+                        "status": "error",
+                        "errors": "file_not_found",
+                    }
                 )
                 continue
 
@@ -294,7 +372,11 @@ class Zindian:
                     to_print=to_print,
                 )
                 submissions.append(
-                    {"filepath": filepath, "status": "error", "errors": response["errors"]}
+                    {
+                        "filepath": filepath,
+                        "status": "error",
+                        "errors": response["errors"],
+                    }
                 )
             else:
                 self.__emit(
@@ -310,25 +392,45 @@ class Zindian:
                 )
         return submissions
 
-    def leaderboard(self, to_print=True, per_page=50):
+    def leaderboard(self, to_print=True, per_page=50, as_model=None):
         challenge_id = self.__require_challenge()
         self.__challengers_data = self.__api_client.get_leaderboard(
             auth_token=self.__auth_data["auth_token"],
             challenge_id=challenge_id,
             per_page=per_page,
         )
-        headers = {**self.__headers, "auth_token": self.__auth_data["auth_token"]}
-        self.__rank = user_on_lb(
-            challengers_data=self.__challengers_data,
-            challenge_id=challenge_id,
-            username=self.__auth_data["user"]["username"],
-            headers=headers,
-        )
+        self.__rank = 0
+        try:
+            my_participation = self.__api_client.get_my_participation(
+                auth_token=self.__auth_data["auth_token"],
+                challenge_id=challenge_id,
+            )
+            self.__rank = my_participation.get("public_rank", 0) or 0
+        except Exception:
+            self.__rank = 0
+
+        if self.__rank == 0:
+            headers = {**self.__headers, "auth_token": self.__auth_data["auth_token"]}
+            self.__rank = user_on_lb(
+                challengers_data=self.__challengers_data,
+                challenge_id=challenge_id,
+                username=self.__auth_data["user"]["username"],
+                headers=headers,
+            )
+            if self.__rank == 0:
+                self.__rank = self.__rank_from_leaderboard_rows(self.__challengers_data)
         if to_print:
             print_lb(challengers_data=self.__challengers_data, user_rank=self.__rank)
-        return {"rank": self.__rank, "leaderboard": self.__challengers_data}
+        result = {"rank": self.__rank, "leaderboard": self.__challengers_data}
+        use_model = self.__return_models if as_model is None else as_model
+        if use_model:
+            entries = [
+                LeaderboardEntry.from_raw(row) for row in self.__challengers_data
+            ]
+            return LeaderboardResult(rank=self.__rank, leaderboard=entries)
+        return result
 
-    def submission_board(self, to_print=True, per_page=50):
+    def submission_board(self, to_print=True, per_page=50, as_model=None):
         challenge_id = self.__require_challenge()
         self.__sb_data = self.__api_client.get_submission_history(
             auth_token=self.__auth_data["auth_token"],
@@ -337,6 +439,10 @@ class Zindian:
         )
         if to_print:
             print_submission_board(submissions_data=self.__sb_data)
+        use_model = self.__return_models if as_model is None else as_model
+        if use_model:
+            entries = [SubmissionEntry.from_raw(row) for row in self.__sb_data]
+            return SubmissionBoardResult(submissions=entries)
         return self.__sb_data
 
     def create_team(self, team_name, teammates=None, to_print=None):
@@ -348,11 +454,17 @@ class Zindian:
             team_name=team_name,
         )
 
-        if ("errors" in response) and ("Leader can only be" not in response["errors"]["base"]):
+        if ("errors" in response) and (
+            "Leader can only be" not in response["errors"]["base"]
+        ):
             raise Exception(f"\n[ 🔴 ] {response['errors']['base']}\n")
 
-        if ("errors" in response) and ("Leader can only be" in response["errors"]["base"]):
-            self.__emit("\n[ 🟢 ] You are already the leader of a team.\n", to_print=to_print)
+        if ("errors" in response) and (
+            "Leader can only be" in response["errors"]["base"]
+        ):
+            self.__emit(
+                "\n[ 🟢 ] You are already the leader of a team.\n", to_print=to_print
+            )
             team_response = {"already_leader": True, "team": None}
         else:
             self.__emit(
@@ -385,7 +497,9 @@ class Zindian:
                         f"\n[ 🟢 ] An invitation has been sent already to join your team to: {zindian}\n",
                         to_print=to_print,
                     )
-                    invitations.append({"username": zindian, "status": "already_invited"})
+                    invitations.append(
+                        {"username": zindian, "status": "already_invited"}
+                    )
                 else:
                     raise Exception(f"\n[ 🔴 ] {response['errors']}\n")
             else:

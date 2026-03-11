@@ -1,5 +1,4 @@
 import datetime
-import os
 import unittest
 from unittest.mock import patch
 
@@ -155,8 +154,12 @@ class TestUserChallengeInteraction(AuthenticatedUserTestCase):
         )
         self.assertEqual(mock_util_download.call_count, 3)
         called_urls = [kwargs["url"] for _, kwargs in mock_util_download.call_args_list]
-        self.assertIn(f"{self.user._Zindian__base_api}/challenge-2/files/Train.csv", called_urls)
-        self.assertIn(f"{self.user._Zindian__base_api}/challenge-2/files/Test.csv", called_urls)
+        self.assertIn(
+            f"{self.user._Zindian__base_api}/challenge-2/files/Train.csv", called_urls
+        )
+        self.assertIn(
+            f"{self.user._Zindian__base_api}/challenge-2/files/Test.csv", called_urls
+        )
         self.assertIn(
             f"{self.user._Zindian__base_api}/challenge-2/files/SampleSubmission.csv",
             called_urls,
@@ -210,16 +213,17 @@ class TestUserChallengeInteraction(AuthenticatedUserTestCase):
         self.assertEqual(response[0]["status"], "error")
         self.assertEqual(response[0]["errors"], "invalid_extension")
 
+    @patch("zindi.user.ZindiPlatformAPI.get_my_participation")
     @patch("zindi.user.ZindiPlatformAPI.get_leaderboard")
-    @patch("zindi.user.user_on_lb", return_value=2)
-    def _leaderboard_success(self, mock_user_on_lb, mock_get):
+    def _leaderboard_success(self, mock_get, mock_my_participation):
         """Test fetching the leaderboard successfully."""
         mock_get.return_value = MOCK_LEADERBOARD_DATA["data"]
+        mock_my_participation.return_value = {"public_rank": 2}
         self.user.leaderboard(to_print=False)
         mock_get.assert_called_once()
         self.assertEqual(len(self.user._Zindian__challengers_data), 3)
         self.assertEqual(self.user._Zindian__rank, 2)
-        mock_user_on_lb.assert_called_once()
+        mock_my_participation.assert_called_once()
 
     def test_leaderboard_not_selected_error(self):
         """Test fetching leaderboard before selecting a challenge (edge case)."""
@@ -237,16 +241,30 @@ class TestUserChallengeInteraction(AuthenticatedUserTestCase):
         self.assertEqual(len(self.user._Zindian__sb_data), 3)
         self.assertEqual(len(response), 3)
 
+    @patch("zindi.user.ZindiPlatformAPI.get_my_participation")
     @patch("zindi.user.ZindiPlatformAPI.get_leaderboard")
-    @patch("zindi.user.user_on_lb", return_value=2)
-    def test_leaderboard_success_return(self, mock_user_on_lb, mock_get):
+    def test_leaderboard_success_return(self, mock_get, mock_my_participation):
         """Test leaderboard returns rank and rows."""
         mock_get.return_value = MOCK_LEADERBOARD_DATA["data"]
+        mock_my_participation.return_value = {"public_rank": 2}
         response = self.user.leaderboard(to_print=False)
 
         self.assertEqual(response["rank"], 2)
         self.assertEqual(len(response["leaderboard"]), 3)
-        mock_user_on_lb.assert_called_once()
+        mock_my_participation.assert_called_once()
+
+    @patch("zindi.user.ZindiPlatformAPI.get_my_participation")
+    @patch("zindi.user.ZindiPlatformAPI.get_leaderboard")
+    def test_leaderboard_rank_independent_from_page(
+        self, mock_get, mock_my_participation
+    ):
+        """Rank should not depend on per_page when API returns my participation rank."""
+        mock_get.return_value = MOCK_LEADERBOARD_DATA["data"][:1]
+        mock_my_participation.return_value = {"public_rank": 30}
+
+        response = self.user.leaderboard(to_print=False, per_page=1)
+
+        self.assertEqual(response["rank"], 30)
 
     def test_submission_board_not_selected_error(self):
         """Test fetching submission board before selecting a challenge (edge case)."""
@@ -268,6 +286,19 @@ class TestUserChallengeInteraction(AuthenticatedUserTestCase):
         self.user._Zindian__challenge_selected = False  # Override setup
         rank = self.user.my_rank
         self.assertEqual(rank, 0)
+
+    @patch("zindi.user.ZindiPlatformAPI.get_leaderboard")
+    @patch("zindi.user.ZindiPlatformAPI.get_my_participation")
+    def test_my_rank_fallback_from_leaderboard(self, mock_my_participation, mock_lb):
+        """Test my_rank fallback when my_participation returns zero."""
+        mock_my_participation.return_value = {"public_rank": 0}
+        mock_lb.return_value = MOCK_LEADERBOARD_DATA["data"]
+
+        rank = self.user.my_rank
+
+        self.assertEqual(rank, 2)
+        mock_my_participation.assert_called_once()
+        mock_lb.assert_called_once()
 
     def test_remaining_submissions_not_selected(self):
         """Test remaining submissions before selecting a challenge."""

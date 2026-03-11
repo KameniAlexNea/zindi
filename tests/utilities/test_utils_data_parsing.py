@@ -148,5 +148,6 @@ class TestDataParsing(unittest.TestCase):
             challenge_id="challenge-id", headers=headers
         )
 
+
 if __name__ == "__main__":
     unittest.main()

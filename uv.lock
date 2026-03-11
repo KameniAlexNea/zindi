@@ -3117,15 +3117,6 @@ wheels = [
 ]
 
 [[package]]
-name = "tdqm"
-version = "0.0.1"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "tqdm" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/5a/38/58c9e22b95e98666fe29f35e217ab6126a03798dadf3f4f8f3e5f898510b/tdqm-0.0.1.tar.gz", hash = "sha256:f050004a76b1d22f70b78209b48781353c82440215b6ba7d22b1f499b05a0101", size = 1388, upload_time = "2020-08-19T20:16:22.191Z" }
-
-[[package]]
 name = "tenacity"
 version = "9.1.2"
 source = { registry = "https://pypi.org/simple" }
@@ -3423,9 +3414,10 @@ name = "zindi"
 source = { editable = "." }
 dependencies = [
     { name = "pandas" },
+    { name = "pydantic" },
     { name = "requests" },
     { name = "requests-toolbelt" },
-    { name = "tdqm" },
+    { name = "tqdm" },
 ]
 
 [package.optional-dependencies]
@@ -3464,14 +3456,15 @@ requires-dist = [
     { name = "mypy", marker = "extra == 'dev'" },
     { name = "pandas" },
     { name = "pickleshare", marker = "extra == 'dev'" },
+    { name = "pydantic", specifier = ">=2,<3" },
     { name = "pytest", marker = "extra == 'dev'" },
     { name = "pytest-cov", marker = "extra == 'dev'" },
     { name = "requests" },
     { name = "requests-toolbelt" },
     { name = "safety", marker = "extra == 'dev'" },
     { name = "sphinx", marker = "extra == 'dev'" },
-    { name = "tdqm" },
     { name = "tox", marker = "extra == 'dev'" },
+    { name = "tqdm" },
     { name = "twine", marker = "extra == 'dev'" },
     { name = "wheel", marker = "extra == 'dev'" },
 ]
